@@ -5,21 +5,33 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"server-monitor/model"
+	"server-monitor-server/model"
+	"server-monitor-server/util"
+	"strconv"
 	"sync"
 )
 
-const TOKEN = "123456"
-
 var data = sync.Map{}
+var (
+	token      string
+	serverPort int
+	webApiPort int
+)
 
+func init() {
+	var c util.Conf
+	conf := c.GetConf()
+	token = conf.Token
+	serverPort = conf.Port.Server
+	webApiPort = conf.Port.WebApi
+}
 func main() {
-	listener, err := net.Listen("tcp", "0.0.0.0:3384")
+	listener, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(serverPort))
 	if err != nil {
 		log.Fatalf("Service initialization failed! %v\n", err)
 	}
-	log.Println("Server initialized successfully, listening on port 3384...")
-	go httpServe()
+	log.Printf("Server initialized successfully, listening on port %d...\n", serverPort)
+	go openHttpServe()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -29,7 +41,8 @@ func main() {
 	}
 }
 
-func httpServe() {
+// openHttpServe Enable the HTTP service so that data can be obtained through HTTP requests.
+func openHttpServe() {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
@@ -43,7 +56,8 @@ func httpServe() {
 		bytes, _ := json.Marshal(tempArray)
 		w.Write(bytes)
 	})
-	http.ListenAndServe("0.0.0.0:9000", nil)
+	log.Printf("The HTTP service is enabled and you can get data via [ip:%d/json].\n", webApiPort)
+	http.ListenAndServe("0.0.0.0:"+strconv.Itoa(webApiPort), nil)
 }
 
 func createConn(conn net.Conn) {
@@ -75,7 +89,7 @@ func createConn(conn net.Conn) {
 		var osModel model.OSModel
 		err = json.Unmarshal(buf[:n], &osModel)
 		if err != nil {
-			log.Printf("Data parsing failed: %#v", err.Error())
+			log.Printf("Unmarshal: %v", err)
 			continue
 		}
 		data.Store(clientIp, &osModel)
@@ -89,6 +103,6 @@ func auth(conn net.Conn) bool {
 	if err != nil {
 		return false
 	}
-	token := string(buf[:n])
-	return TOKEN == token
+	_token := string(buf[:n])
+	return token == _token
 }

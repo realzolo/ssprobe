@@ -1,0 +1,4 @@
+token: 123456
+port:
+  server: 3384
+  web-api: 9000

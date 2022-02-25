@@ -11,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	psnet "github.com/shirou/gopsutil/v3/net"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"runtime"
@@ -29,7 +30,13 @@ var netSpeed = map[string]uint64{
 	"clock":         0,
 	"diff":          0,
 }
-
+var (
+	name       string
+	server     string
+	serverPort int
+	clientPort int
+	token      string
+)
 var pingTime sync.Map
 var lostRate sync.Map
 
@@ -43,22 +50,57 @@ func init() {
 }
 
 func main() {
-	go GetRealtimeData()
-	for {
-		if value, ok := pingTime.Load("10000"); ok {
-			fmt.Printf("ping time: %v\t", value)
-		}
-		if value, ok := lostRate.Load("10000"); ok {
-			fmt.Printf("lost rate: %v\n", value)
-		}
-		if value, ok := pingTime.Load("10010"); ok {
-			fmt.Printf("ping time: %v\t", value)
-		}
-		if value, ok := lostRate.Load("10010"); ok {
-			fmt.Printf("lost rate: %v\n", value)
-		}
-		time.Sleep(time.Second)
+	// Collect config.
+	collectConfig()
+	// Connect to server.
+	connectToServer()
+	// Stay connected and push data.
+	keepConnAndPushData()
+}
+
+// collectConfig Collect client configuration information.
+func collectConfig() {
+	fmt.Print("Client Name: ")
+	fmt.Scanln(&name)
+	fmt.Print("Server ip: ")
+	fmt.Scanln(&server)
+	fmt.Print("Server port: ")
+	fmt.Scanln(&serverPort)
+	fmt.Print("Client port: ")
+	fmt.Scanln(&clientPort)
+	fmt.Print("Token: ")
+	fmt.Scanln(&token)
+	if len(name) == 0 || len(server) == 0 || len(token) == 0 {
+		fmt.Println("Data cannot be null, Please re-run this program!")
 	}
+}
+
+// connectToServer Use the socket connect to the server.
+func connectToServer() {
+	conn, err := net.Dial("tcp", server+":"+strconv.Itoa(serverPort))
+	if err != nil {
+		log.Fatal("Failed to connect to server.", err)
+	}
+	// Authentication.
+	bytes, _ := json.Marshal(token)
+	_, err = conn.Write(bytes)
+	if err != nil {
+		log.Fatal("Authentication failed! ", err)
+	}
+	var buf []byte
+	n, err := conn.Read(buf)
+	if err != nil {
+		log.Fatal("Authentication failed! ", err)
+	}
+	resCode, _ := strconv.Atoi(string(buf[:n]))
+	// The token is incorrect.
+	if resCode == -1 {
+		log.Fatal("Client authentication failed, token is incorrect!")
+	}
+	log.Println("Server connection successful!")
+}
+func keepConnAndPushData() {
+	
 }
 
 // GetMemory Get the usage of memory
