@@ -73,8 +73,8 @@ func GetSwapMemory() (uint64, uint64, float64) {
 	return m.Total, m.Used, m.UsedPercent
 }
 
-// GetDiskSize Get disk capacity information.
-func GetDiskSize() (uint64, uint64, float64) {
+// GetHDDSize Get disk capacity information.
+func GetHDDSize() (uint64, uint64, float64) {
 	platform := strings.ToLower(runtime.GOOS)
 	if strings.Contains(platform, "linux") { // Linux
 		stat, _ := disk.Usage("/")
@@ -105,7 +105,7 @@ func GetCPU() (int, float64) {
 	return counts, percent[0]
 }
 
-//	GetLoad Get CPU load information.
+// GetLoad Get CPU load information.
 func GetLoad() (float64, float64, float64) {
 	avg, _ := load.Avg()
 	return avg.Load1, avg.Load5, avg.Load15
@@ -135,6 +135,7 @@ func GetIP() (string, string, string) {
 }
 
 // NetSpeed Monitor network speed.
+// TODO: There is an exception, the upload speed is not accurate.
 func NetSpeed() {
 	for {
 		counters, _ := psnet.IOCounters(true)
@@ -172,14 +173,14 @@ func PingThread(host string, port int, mark string) {
 
 		if queue.Len() > 100 {
 			backElement := queue.Back()
-			if backElement.Value.(int) <= 10 {
+			if backElement.Value.(uint) <= 10 {
 				lostPacket -= 1
 			}
 			queue.Remove(backElement)
 		}
-		queue.PushFront(int(end - start))
+		queue.PushFront(uint(end - start))
 
-		pingTime.Store(mark, (queue.Front().Value).(int))
+		pingTime.Store(mark, (queue.Front().Value).(uint))
 		if queue.Len() > 10 {
 			lostRate.Store(mark, (float32(lostPacket)/float32(queue.Len()))*100)
 		}

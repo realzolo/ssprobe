@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"server-monitor/model"
-	"strings"
 	"sync"
 )
 
@@ -15,16 +14,15 @@ const TOKEN = "123456"
 var data = sync.Map{}
 
 func main() {
-	listener, err := net.Listen("tcp", "127.0.0.1:3384")
+	listener, err := net.Listen("tcp", "0.0.0.0:3384")
 	if err != nil {
-		log.Fatalf("服务初始化失败! %v\n", err)
+		log.Fatalf("Service initialization failed! %v\n", err)
 	}
-	log.Println("服务器初始化成功,正在监听3384端口...")
+	log.Println("Server initialized successfully, listening on port 3384...")
 	go httpServe()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Accept err. %v\n", err)
 			continue
 		}
 		go createConn(conn)
@@ -33,9 +31,9 @@ func main() {
 
 func httpServe() {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")             //允许访问所有域
-		w.Header().Add("Access-Control-Allow-Headers", "Content-Type") //header的类型
-		w.Header().Set("content-type", "application/json")             //返回数据格式是json
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("content-type", "application/json")
 
 		var tempArray []*interface{}
 		data.Range(func(key, value interface{}) bool {
@@ -49,72 +47,48 @@ func httpServe() {
 }
 
 func createConn(conn net.Conn) {
-	//host := parseIpAddress(conn.RemoteAddr().String())
-	host := conn.RemoteAddr().String()
 	defer conn.Close()
-	// 认证客户机
+	clientIp := conn.RemoteAddr().String()
 	if !auth(conn) {
-		bytes, _ := json.Marshal(model.AuthModel{Code: -1})
+		bytes, _ := json.Marshal(-1)
 		conn.Write(bytes)
 		return
 	}
-	bytes, _ := json.Marshal(
-		model.AuthModel{
-			Code:      0,
-			Host:      host,
-			IpVersion: getIpVersion(host),
-		})
+	bytes, _ := json.Marshal(0)
 	_, err := conn.Write(bytes)
 	if err != nil {
 		return
 	}
-	// 持续读取数据
+	// Listen for the client to read data.
 	for {
 		buf := make([]byte, 1024)
-		n, err := conn.Read(buf) // n: 读到的字节数
-		// 若客户机下线,则将其状态更改为false
+		n, err := conn.Read(buf)
+		// If the client goes offline, change its state to false
 		if err != nil {
-			log.Printf("%v 已退出!\n", host)
-			if v, ok := data.Load(host); ok {
+			log.Printf("%v logout!\n", clientIp)
+			if v, ok := data.Load(clientIp); ok {
 				osModel := v.(*model.OSModel)
 				osModel.State = false
 			}
 			return
 		}
-		var osInfo model.OSModel
-		err = json.Unmarshal(buf[:n], &osInfo)
+		var osModel model.OSModel
+		err = json.Unmarshal(buf[:n], &osModel)
 		if err != nil {
-			log.Fatalf("数据解析失败: %#v", err)
+			log.Printf("Data parsing failed: %#v", err.Error())
+			continue
 		}
-		data.Store(host, &osInfo)
+		data.Store(clientIp, &osModel)
 	}
 }
 
-// auth 根据用户传过来的Token验证用户身份
+// auth Authentication client.
 func auth(conn net.Conn) bool {
 	buf := make([]byte, 1024)
-	n, err := conn.Read(buf) // n: 读到的字节数
+	n, err := conn.Read(buf)
 	if err != nil {
 		return false
 	}
 	token := string(buf[:n])
-	if TOKEN == token {
-		log.Printf("---用户 %v 连接成功!\n", conn.RemoteAddr())
-		return true
-	}
-	return false
-}
-
-// 获取IP版本
-func getIpVersion(address string) string {
-	if strings.Count(address, ":") < 1 {
-		return "IPv4"
-	} else { // strings.Count(address, ":") >= 1
-		return "IPv6"
-	}
-}
-
-// 获取ip地址,例如: 127.0.0.1:8000 -> 127.0.0.1
-func parseIpAddress(address string) string {
-	return address[:strings.LastIndex(address, ":")]
+	return TOKEN == token
 }
