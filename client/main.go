@@ -1,0 +1,186 @@
+package main
+
+import (
+	"container/list"
+	"encoding/json"
+	"fmt"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v3/load"
+	"github.com/shirou/gopsutil/v3/mem"
+	psnet "github.com/shirou/gopsutil/v3/net"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"runtime"
+	"server-monitor-client/model"
+	"strconv"
+	"strings"
+	"time"
+)
+
+var netSpeed = map[string]uint64{
+	"byteSent":      0,
+	"byteRecv":      0,
+	"byteTotalRecv": 0,
+	"byteTotalSent": 0,
+	"clock":         0,
+	"diff":          0,
+}
+var pingTime = map[string]int{
+	"10000": 0,
+	"10010": 0,
+	"10086": 0,
+}
+var lostPacket = map[string]int{
+	"10000": 0,
+	"10010": 0,
+	"10086": 0,
+}
+
+func main() {
+	go GetRealtimeData()
+	for {
+		fmt.Printf("10000: %v 10010: %v 10086: %v\n", pingTime["10000"], pingTime["10010"], pingTime["10086"])
+		fmt.Printf("10000LOST: %v 10010LOST: %v 10086LOST: %v\n", lostPacket["10000"], lostPacket["10010"], lostPacket["10086"])
+		time.Sleep(time.Second)
+	}
+}
+
+// GetMemory Get the usage of memory
+func GetMemory() (uint64, uint64, float64) {
+	m, _ := mem.VirtualMemory()
+	return m.Total, m.Used, m.UsedPercent
+}
+
+// GetSwapMemory Get the usage of swap memory
+func GetSwapMemory() (uint64, uint64, float64) {
+	m, _ := mem.SwapMemory()
+	return m.Total, m.Used, m.UsedPercent
+}
+
+// GetDiskSize Get disk capacity information.
+func GetDiskSize() (uint64, uint64, float64) {
+	platform := strings.ToLower(runtime.GOOS)
+	if strings.Contains(platform, "linux") { // Linux
+		stat, _ := disk.Usage("/")
+		return stat.Total, stat.Used, stat.UsedPercent
+	} else if strings.Contains(platform, "win") { // Windows
+		_disks, _ := disk.Partitions(false)
+		var (
+			total       uint64  = 0
+			used        uint64  = 0
+			usedPercent float64 = 0.0
+		)
+		for _, _disk := range _disks {
+			stat, _ := disk.Usage(_disk.Device)
+			total += stat.Total
+			used += stat.Used
+		}
+		usedPercent = float64(used) / float64(total)
+		return total, used, usedPercent
+	}
+	return 0, 0, 0
+}
+
+// GetCPU Get CPU information.
+// Return the number and percentage of CPU usage.
+func GetCPU() (int, float64) {
+	counts, _ := cpu.Counts(false)
+	percent, _ := cpu.Percent(time.Second, false)
+	return counts, percent[0]
+}
+
+//	GetLoad Get CPU load information.
+func GetLoad() (float64, float64, float64) {
+	avg, _ := load.Avg()
+	return avg.Load1, avg.Load5, avg.Load15
+}
+
+// GetHost Get current host information.
+// Return the type, number of processes, and running time of the system.
+func GetHost() (string, uint64, uint64) {
+	_host, _ := host.Info()
+	return _host.OS, _host.Procs, _host.Uptime
+}
+
+// GetIP Get the external IP address of the local host.
+func GetIP() (string, string, string) {
+	response, err := http.Get("https://api.vvhan.com/api/getIpInfo")
+	if err != nil {
+		return "0.0.0.0", "", ""
+	}
+	bytes, _ := ioutil.ReadAll(response.Body)
+	var ipModel model.IPModel
+	json.Unmarshal(bytes, &ipModel)
+	var ipVersion = "IPv4"
+	if strings.Count(ipModel.IP, ":") >= 1 {
+		ipVersion = "IPv6"
+	}
+	return ipModel.IP, ipVersion, ipModel.Info.Country
+}
+
+// NetSpeed Monitor network speed.
+func NetSpeed() {
+	for {
+		counters, _ := psnet.IOCounters(true)
+		var totalRecv uint64 = 0
+		var totalSent uint64 = 0
+		for _, counter := range counters {
+			totalRecv += counter.BytesRecv
+			totalSent += counter.BytesSent
+		}
+		nowClock := uint64(time.Now().Unix())
+		netSpeed["diff"] = nowClock - netSpeed["clock"]
+		netSpeed["clock"] = nowClock
+		netSpeed["byteRecv"] = (totalRecv - netSpeed["byteTotalRecv"]) / netSpeed["diff"]
+		netSpeed["byteSent"] = (totalSent - netSpeed["byteTotalSent"]) / netSpeed["diff"]
+		netSpeed["byteTotalRecv"] = totalRecv
+		netSpeed["byteTotalSent"] = totalSent
+		time.Sleep(time.Second)
+	}
+}
+
+// Ping Start a Ping thread, make a dial-up request to the destination address,
+// and get the response time and the number of lost packets.
+func Ping(host string, port int, mark string) {
+	queue := list.New()
+	for {
+		// Send the request and start the timer.
+		start := time.Now().UnixMilli()
+		conn, err := net.Dial("tcp", host+":"+strconv.Itoa(port))
+		// Dial-up request failed, packet lost!
+		if err != nil {
+			lostPacket[mark] += 1
+		}
+		// Request completed, stop the timer.
+		end := time.Now().UnixMilli()
+
+		if queue.Len() > 100 {
+			backElement := queue.Back()
+			if backElement.Value == 0 {
+				lostPacket[mark] -= 1
+			}
+			queue.Remove(backElement)
+		}
+		queue.PushFront(int(end - start))
+
+		pingTime[mark] = (queue.Front().Value).(int)
+		if err == nil {
+			conn.Close()
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func GetRealtimeData() {
+	const (
+		CT = "www.189.cn"
+		CU = "www.10010.com"
+		CM = "www.10086.cn"
+	)
+	go Ping(CT, 80, "10000")
+	go Ping(CU, 80, "10010")
+	go Ping(CM, 80, "10086")
+}
