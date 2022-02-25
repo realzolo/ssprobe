@@ -17,6 +17,7 @@ import (
 	"server-monitor-client/model"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -28,22 +29,34 @@ var netSpeed = map[string]uint64{
 	"clock":         0,
 	"diff":          0,
 }
-var pingTime = map[string]int{
-	"10000": 0,
-	"10010": 0,
-	"10086": 0,
-}
-var lostPacket = map[string]int{
-	"10000": 0,
-	"10010": 0,
-	"10086": 0,
+
+var pingTime sync.Map
+var lostRate sync.Map
+
+func init() {
+	pingTime.Store("10000", 0)
+	pingTime.Store("10010", 0)
+	pingTime.Store("10086", 0)
+	lostRate.Store("10000", 0.0)
+	lostRate.Store("10010", 0.0)
+	lostRate.Store("10086", 0.0)
 }
 
 func main() {
 	go GetRealtimeData()
 	for {
-		fmt.Printf("10000: %v 10010: %v 10086: %v\n", pingTime["10000"], pingTime["10010"], pingTime["10086"])
-		fmt.Printf("10000LOST: %v 10010LOST: %v 10086LOST: %v\n", lostPacket["10000"], lostPacket["10010"], lostPacket["10086"])
+		if value, ok := pingTime.Load("10000"); ok {
+			fmt.Printf("ping time: %v\t", value)
+		}
+		if value, ok := lostRate.Load("10000"); ok {
+			fmt.Printf("lost rate: %v\n", value)
+		}
+		if value, ok := pingTime.Load("10010"); ok {
+			fmt.Printf("ping time: %v\t", value)
+		}
+		if value, ok := lostRate.Load("10010"); ok {
+			fmt.Printf("lost rate: %v\n", value)
+		}
 		time.Sleep(time.Second)
 	}
 }
@@ -142,31 +155,34 @@ func NetSpeed() {
 	}
 }
 
-// Ping Start a Ping thread, make a dial-up request to the destination address,
-// and get the response time and the number of lost packets.
-func Ping(host string, port int, mark string) {
+// PingThread Start a Ping thread to monitor the response time and packet loss rate of the destination host.
+func PingThread(host string, port int, mark string) {
 	queue := list.New()
+	lostPacket := 0
 	for {
 		// Send the request and start the timer.
 		start := time.Now().UnixMilli()
 		conn, err := net.Dial("tcp", host+":"+strconv.Itoa(port))
 		// Dial-up request failed, packet lost!
 		if err != nil {
-			lostPacket[mark] += 1
+			lostPacket += 1
 		}
 		// Request completed, stop the timer.
 		end := time.Now().UnixMilli()
 
 		if queue.Len() > 100 {
 			backElement := queue.Back()
-			if backElement.Value == 0 {
-				lostPacket[mark] -= 1
+			if backElement.Value.(int) <= 10 {
+				lostPacket -= 1
 			}
 			queue.Remove(backElement)
 		}
 		queue.PushFront(int(end - start))
 
-		pingTime[mark] = (queue.Front().Value).(int)
+		pingTime.Store(mark, (queue.Front().Value).(int))
+		if queue.Len() > 10 {
+			lostRate.Store(mark, (float32(lostPacket)/float32(queue.Len()))*100)
+		}
 		if err == nil {
 			conn.Close()
 		}
@@ -176,11 +192,11 @@ func Ping(host string, port int, mark string) {
 
 func GetRealtimeData() {
 	const (
-		CT = "www.189.cn"
+		CT = "www.189"
 		CU = "www.10010.com"
 		CM = "www.10086.cn"
 	)
-	go Ping(CT, 80, "10000")
-	go Ping(CU, 80, "10010")
-	go Ping(CM, 80, "10086")
+	go PingThread(CT, 80, "10000")
+	go PingThread(CU, 80, "10010")
+	go PingThread(CM, 80, "10086")
 }
