@@ -1,0 +1,4 @@
+{
+    "API": "http://127.0.0.1:9000/json", 
+    "SITE_TITLE":"Zolo's Server Monitor"
+}
