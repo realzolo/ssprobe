@@ -14,6 +14,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"server-monitor-client/model"
 	"strconv"
@@ -34,7 +35,7 @@ var netInfo = map[string]uint64{
 var (
 	name   string = "onezol.com"
 	server string = "127.0.0.1"
-	port   int    = 3384
+	port   string = "3384"
 	token  string = "123456"
 )
 var (
@@ -65,35 +66,39 @@ func main() {
 
 // collectConfig Collect client configuration information.
 func collectConfig() {
-	fmt.Print("Client Name: ")
-	fmt.Scanln(&name)
-	fmt.Print("Server ip: ")
-	fmt.Scanln(&server)
-	fmt.Print("Server port: ")
-	fmt.Scanln(&port)
-	fmt.Print("Token: ")
-	fmt.Scanln(&token)
-	if len(name) == 0 || len(server) == 0 || len(token) == 0 {
-		fmt.Println("Data cannot be null, Please re-run this program!")
+	args := os.Args
+	for _, arg := range args {
+		if strings.Contains(arg, "--name=") {
+			name = arg[7:]
+		} else if strings.Contains(arg, "--server=") {
+			server = arg[9:]
+		} else if strings.Contains(arg, "--port=") {
+			port = arg[7:]
+		} else if strings.Contains(arg, "--token=") {
+			token = arg[8:]
+		}
+	}
+	if len(name) == 0 || len(server) == 0 || len(port) == 0 || len(token) == 0 {
+		log.Fatalf("The argument you provided does not match [--name,--server,--port,--token]. \n")
 	}
 }
 
 // connectToServer Use the socket connect to the server.
 func requestAuth() {
-	_conn, err := net.Dial("tcp", server+":"+strconv.Itoa(port))
+	_conn, err := net.Dial("tcp", server+":"+port)
 	if err != nil {
-		log.Fatal("Failed to connect to server.", err)
+		log.Fatal("Failed to connect to server.\n", err)
 	}
 	// Authentication.
 	bytes, _ := json.Marshal(token)
 	_, err = _conn.Write(bytes)
 	if err != nil {
-		log.Fatal("Authentication failed! ", err)
+		log.Fatal("Authentication failed! \n", err)
 	}
 	var buf = make([]byte, 1024)
 	n, err := _conn.Read(buf)
 	if err != nil {
-		log.Fatal("Authentication failed! ", err)
+		log.Fatal("Authentication failed! \n", err)
 	}
 	var resModel = struct {
 		Code int `json:"code"`
@@ -101,7 +106,7 @@ func requestAuth() {
 	json.Unmarshal(buf[:n], &resModel)
 	// The token is incorrect.
 	if resModel.Code == -1 {
-		log.Fatal("Client authentication failed, token is incorrect!")
+		log.Fatal("Client authentication failed, token is incorrect!\n")
 	}
 	conn = &_conn
 	log.Println("Server connection successful!")
@@ -154,12 +159,11 @@ func keepConnAndPushData() {
 			LostRate10000:  _lostRate10000.(int),
 			LostRate10010:  _lostRate10010.(int),
 			LostRate10086:  _lostRate10086.(int),
-			Tcp:            0,
-			Udp:            0,
+			Tcp:            0, // TODO
+			Udp:            0, // TODO
 			Process:        _process,
 		}
 		bytes, _ := json.Marshal(osModel)
-		fmt.Println(len(bytes))
 		(*conn).Write(bytes)
 		time.Sleep(time.Second)
 	}
@@ -182,7 +186,7 @@ func GetHDDSize() (uint64, uint64, uint64) {
 	platform := strings.ToLower(runtime.GOOS)
 	if strings.Contains(platform, "linux") { // Linux
 		stat, _ := disk.Usage("/")
-		return stat.Total, stat.Used, uint64(stat.UsedPercent * 100)
+		return stat.Total, stat.Used, uint64(stat.UsedPercent)
 	} else if strings.Contains(platform, "win") { // Windows
 		_disks, _ := disk.Partitions(false)
 		var (
@@ -289,7 +293,12 @@ func PingThread(host string, port int, mark string) {
 
 		pingTime.Store(mark, queue.Front().Value)
 		if queue.Len() > 10 {
-			lostRate.Store(mark, int((float64(lostPacket)/float64(queue.Len()))*100))
+			numStr := fmt.Sprintf("%.f", (float64(lostPacket)/float64(queue.Len()))*100)
+			num, err := strconv.Atoi(numStr)
+			if err != nil {
+				lostRate.Store(mark, 0)
+			}
+			lostRate.Store(mark, num)
 		}
 		if err == nil {
 			conn.Close()
@@ -300,7 +309,7 @@ func PingThread(host string, port int, mark string) {
 
 func GetRealtimeData() {
 	const (
-		CT = "www.189"
+		CT = "www.189.cn"
 		CU = "www.10010.com"
 		CM = "www.10086.cn"
 	)
