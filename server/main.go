@@ -13,6 +13,7 @@ import (
 	"sync"
 )
 
+var clientKeys []string
 var data = sync.Map{}
 var (
 	token      string
@@ -58,10 +59,10 @@ func openHttpServe() {
 		w.Header().Set("content-type", "application/json")
 
 		var tempArray []*interface{}
-		data.Range(func(key, value interface{}) bool {
-			tempArray = append(tempArray, &value)
-			return true
-		})
+		for _, clientKey := range clientKeys {
+			v, _ := data.Load(clientKey)
+			tempArray = append(tempArray, &v)
+		}
 		bytes, _ := json.Marshal(tempArray)
 		w.Write(bytes)
 	})
@@ -97,6 +98,10 @@ func createConn(conn net.Conn) {
 		if err != nil {
 			log.Printf("Unmarshal: %v", err)
 			continue
+		}
+
+		if _, ok := data.Load(clientIp); !ok {
+			clientKeys = append(clientKeys, clientIp)
 		}
 		data.Store(clientIp, &osModel)
 	}
