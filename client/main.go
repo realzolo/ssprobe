@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-var netSpeed = map[string]uint64{
+var netInfo = map[string]uint64{
 	"byteSent":      0,
 	"byteRecv":      0,
 	"byteTotalRecv": 0,
@@ -30,30 +30,35 @@ var netSpeed = map[string]uint64{
 	"clock":         0,
 	"diff":          0,
 }
+
 var (
-	name       string
-	server     string
-	serverPort int
-	clientPort int
-	token      string
+	name   string = "onezol.com"
+	server string = "127.0.0.1"
+	port   int    = 3384
+	token  string = "123456"
 )
-var pingTime sync.Map
-var lostRate sync.Map
+var (
+	pingTime sync.Map
+	lostRate sync.Map
+)
+var conn *net.Conn
 
 func init() {
 	pingTime.Store("10000", 0)
 	pingTime.Store("10010", 0)
 	pingTime.Store("10086", 0)
-	lostRate.Store("10000", 0.0)
-	lostRate.Store("10010", 0.0)
-	lostRate.Store("10086", 0.0)
+	lostRate.Store("10000", 0)
+	lostRate.Store("10010", 0)
+	lostRate.Store("10086", 0)
 }
 
 func main() {
 	// Collect config.
 	collectConfig()
 	// Connect to server.
-	connectToServer()
+	requestAuth()
+	// Realtime data.
+	GetRealtimeData()
 	// Stay connected and push data.
 	keepConnAndPushData()
 }
@@ -65,9 +70,7 @@ func collectConfig() {
 	fmt.Print("Server ip: ")
 	fmt.Scanln(&server)
 	fmt.Print("Server port: ")
-	fmt.Scanln(&serverPort)
-	fmt.Print("Client port: ")
-	fmt.Scanln(&clientPort)
+	fmt.Scanln(&port)
 	fmt.Print("Token: ")
 	fmt.Scanln(&token)
 	if len(name) == 0 || len(server) == 0 || len(token) == 0 {
@@ -76,64 +79,123 @@ func collectConfig() {
 }
 
 // connectToServer Use the socket connect to the server.
-func connectToServer() {
-	conn, err := net.Dial("tcp", server+":"+strconv.Itoa(serverPort))
+func requestAuth() {
+	_conn, err := net.Dial("tcp", server+":"+strconv.Itoa(port))
 	if err != nil {
 		log.Fatal("Failed to connect to server.", err)
 	}
 	// Authentication.
 	bytes, _ := json.Marshal(token)
-	_, err = conn.Write(bytes)
+	_, err = _conn.Write(bytes)
 	if err != nil {
 		log.Fatal("Authentication failed! ", err)
 	}
-	var buf []byte
-	n, err := conn.Read(buf)
+	var buf = make([]byte, 1024)
+	n, err := _conn.Read(buf)
 	if err != nil {
 		log.Fatal("Authentication failed! ", err)
 	}
-	resCode, _ := strconv.Atoi(string(buf[:n]))
+	var resModel = struct {
+		Code int `json:"code"`
+	}{}
+	json.Unmarshal(buf[:n], &resModel)
 	// The token is incorrect.
-	if resCode == -1 {
+	if resModel.Code == -1 {
 		log.Fatal("Client authentication failed, token is incorrect!")
 	}
+	conn = &_conn
 	log.Println("Server connection successful!")
 }
+
 func keepConnAndPushData() {
-	
+	_ip, _ipVersion, _location := GetIP()
+	for {
+		_os, _process, _uptime := GetHost()
+		_memTotal, _memUsed, _memUsedPct := GetMemory()
+		_swapMemTotal, _swapMemUsed, _swapMemUsedPct := GetSwapMemory()
+		_hddTotal, _hddUsed, _hddUsedPct := GetHDDSize()
+		_cpuCount, _cpuUsedPct := GetCPU()
+		_load1, _load5, _load15 := GetLoad()
+		_ping10000, _ := pingTime.Load("10000")
+		_ping10010, _ := pingTime.Load("10010")
+		_ping10086, _ := pingTime.Load("10086")
+		_lostRate10000, _ := lostRate.Load("10000")
+		_lostRate10010, _ := lostRate.Load("10010")
+		_lostRate10086, _ := lostRate.Load("10086")
+		osModel := model.OSModel{
+			Name:           name,
+			Host:           _ip,
+			IPVersion:      _ipVersion,
+			State:          true,
+			OS:             _os,
+			Location:       _location,
+			Uptime:         _uptime,
+			Load1:          _load1,
+			Load5:          _load5,
+			Load15:         _load15,
+			MemTotal:       _memTotal,
+			MemUsed:        _memUsed,
+			MemUsedPct:     _memUsedPct,
+			SwapMemTotal:   _swapMemTotal,
+			SwapMemUsed:    _swapMemUsed,
+			SwapMemUsedPct: _swapMemUsedPct,
+			HddTotal:       _hddTotal,
+			HddUsed:        _hddUsed,
+			HddUsedPct:     _hddUsedPct,
+			CpuCount:       _cpuCount,
+			CpuUsedPct:     _cpuUsedPct,
+			NetDownSpeed:   netInfo["byteRecv"],
+			NetUpSpeed:     netInfo["byteSent"],
+			ByteRecvTotal:  netInfo["byteTotalRecv"],
+			ByteSentTotal:  netInfo["byteTotalSent"],
+			Ping10000:      _ping10000.(int),
+			Ping10010:      _ping10010.(int),
+			Ping10086:      _ping10086.(int),
+			LostRate10000:  _lostRate10000.(int),
+			LostRate10010:  _lostRate10010.(int),
+			LostRate10086:  _lostRate10086.(int),
+			Tcp:            0,
+			Udp:            0,
+			Process:        _process,
+		}
+		bytes, _ := json.Marshal(osModel)
+		fmt.Println(len(bytes))
+		(*conn).Write(bytes)
+		time.Sleep(time.Second)
+	}
 }
 
 // GetMemory Get the usage of memory
-func GetMemory() (uint64, uint64, float64) {
+func GetMemory() (uint64, uint64, uint64) {
 	m, _ := mem.VirtualMemory()
-	return m.Total, m.Used, m.UsedPercent
+	return m.Total, m.Used, uint64(m.UsedPercent)
 }
 
 // GetSwapMemory Get the usage of swap memory
-func GetSwapMemory() (uint64, uint64, float64) {
+func GetSwapMemory() (uint64, uint64, uint64) {
 	m, _ := mem.SwapMemory()
-	return m.Total, m.Used, m.UsedPercent
+	return m.Total, m.Used, uint64(m.UsedPercent)
 }
 
 // GetHDDSize Get disk capacity information.
-func GetHDDSize() (uint64, uint64, float64) {
+func GetHDDSize() (uint64, uint64, uint64) {
 	platform := strings.ToLower(runtime.GOOS)
 	if strings.Contains(platform, "linux") { // Linux
 		stat, _ := disk.Usage("/")
-		return stat.Total, stat.Used, stat.UsedPercent
+		return stat.Total, stat.Used, uint64(stat.UsedPercent * 100)
 	} else if strings.Contains(platform, "win") { // Windows
 		_disks, _ := disk.Partitions(false)
 		var (
-			total       uint64  = 0
-			used        uint64  = 0
-			usedPercent float64 = 0.0
+			total       uint64 = 0
+			used        uint64 = 0
+			usedPercent uint64 = 0
 		)
 		for _, _disk := range _disks {
 			stat, _ := disk.Usage(_disk.Device)
 			total += stat.Total
 			used += stat.Used
 		}
-		usedPercent = float64(used) / float64(total)
+		usedPercent = uint64((float64(used) / float64(total)) * 100)
 		return total, used, usedPercent
 	}
 	return 0, 0, 0
@@ -141,16 +203,19 @@ func GetHDDSize() (uint64, uint64, float64) {
 
 // GetCPU Get CPU information.
 // Return the number and percentage of CPU usage.
-func GetCPU() (int, float64) {
+func GetCPU() (int, uint64) {
 	counts, _ := cpu.Counts(false)
 	percent, _ := cpu.Percent(time.Second, false)
-	return counts, percent[0]
+	return counts, uint64(percent[0])
 }
 
 // GetLoad Get CPU load information.
 func GetLoad() (float64, float64, float64) {
 	avg, _ := load.Avg()
-	return avg.Load1, avg.Load5, avg.Load15
+	load1, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", avg.Load1), 64)
+	load5, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", avg.Load1), 64)
+	load15, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", avg.Load1), 64)
+	return load1, load5, load15
 }
 
 // GetHost Get current host information.
@@ -188,12 +253,12 @@ func NetSpeed() {
 			totalSent += counter.BytesSent
 		}
 		nowClock := uint64(time.Now().Unix())
-		netSpeed["diff"] = nowClock - netSpeed["clock"]
-		netSpeed["clock"] = nowClock
-		netSpeed["byteRecv"] = (totalRecv - netSpeed["byteTotalRecv"]) / netSpeed["diff"]
-		netSpeed["byteSent"] = (totalSent - netSpeed["byteTotalSent"]) / netSpeed["diff"]
-		netSpeed["byteTotalRecv"] = totalRecv
-		netSpeed["byteTotalSent"] = totalSent
+		netInfo["diff"] = nowClock - netInfo["clock"]
+		netInfo["clock"] = nowClock
+		netInfo["byteRecv"] = (totalRecv - netInfo["byteTotalRecv"]) / netInfo["diff"]
+		netInfo["byteSent"] = (totalSent - netInfo["byteTotalSent"]) / netInfo["diff"]
+		netInfo["byteTotalRecv"] = totalRecv
+		netInfo["byteTotalSent"] = totalSent
 		time.Sleep(time.Second)
 	}
 }
@@ -215,16 +280,16 @@ func PingThread(host string, port int, mark string) {
 
 		if queue.Len() > 100 {
 			backElement := queue.Back()
-			if backElement.Value.(uint) <= 10 {
+			if backElement.Value.(int) <= 10 { // An empty packet.
 				lostPacket -= 1
 			}
 			queue.Remove(backElement)
 		}
-		queue.PushFront(uint(end - start))
+		queue.PushFront(int(end - start))
 
-		pingTime.Store(mark, (queue.Front().Value).(uint))
+		pingTime.Store(mark, queue.Front().Value)
 		if queue.Len() > 10 {
-			lostRate.Store(mark, (float32(lostPacket)/float32(queue.Len()))*100)
+			lostRate.Store(mark, int((float64(lostPacket)/float64(queue.Len()))*100))
 		}
 		if err == nil {
 			conn.Close()
@@ -242,4 +307,5 @@ func GetRealtimeData() {
 	go PingThread(CT, 80, "10000")
 	go PingThread(CU, 80, "10010")
 	go PingThread(CM, 80, "10086")
+	go NetSpeed()
 }
