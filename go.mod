@@ -1,8 +1,11 @@
-module server-monitor-client
+module server-monitor
 
 go 1.17
 
-require github.com/shirou/gopsutil/v3 v3.22.1
+require (
+	github.com/shirou/gopsutil/v3 v3.22.1
+	gopkg.in/yaml.v2 v2.4.0
+)
 
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect

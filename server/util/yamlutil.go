@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strings"
 )
 
 type Conf struct {
@@ -19,7 +20,8 @@ func (c *Conf) GetConf() *Conf {
 	path, _ := filepath.Abs("config.yaml")
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Yaml file load error. %v ", err)
+		path = strings.Replace(path, "config.yaml", "server/config.yaml", 1)
+		yamlFile, err = ioutil.ReadFile(path)
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
