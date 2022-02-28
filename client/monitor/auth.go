@@ -40,7 +40,7 @@ func collectConfig() {
 }
 
 // RequestAuth Authenticate the client and return the connection.
-func RequestAuth() AuthResult {
+func RequestAuth() *AuthResult {
 	collectConfig()
 
 	conn, err := net.Dial("tcp", server+":"+port)
@@ -68,7 +68,7 @@ func RequestAuth() AuthResult {
 	}
 	log.Println("Server connection successful!")
 
-	return AuthResult{
+	return &AuthResult{
 		Conn: &conn,
 		Name: name,
 	}

@@ -2,31 +2,25 @@ package main
 
 import (
 	"encoding/json"
-	"net"
 	"server-monitor/client/monitor"
 	"server-monitor/common/model"
 	"time"
 )
 
-var (
-	conn *net.Conn
-	name string
-)
+var authRes *monitor.AuthResult
 
 func main() {
 	// Authenticate the client.
-	r := monitor.RequestAuth()
-	conn = r.Conn
-	name = r.Name
+	authRes = monitor.RequestAuth()
 	// Realtime data.
 	monitor.GetRealtimeData()
 	// Stay connected and push data.
-	keepConnAndPushData()
+	pushData()
 }
 
-func keepConnAndPushData() {
-	_ip, _ipVersion, _location := monitor.GetIP()
+func pushData() {
 	for {
+		_ip, _ipVersion, _location := monitor.GetIP()
 		_os, _process, _uptime := monitor.GetHost()
 		_memTotal, _memUsed, _memUsedPct := monitor.GetMemory()
 		_swapMemTotal, _swapMemUsed, _swapMemUsedPct := monitor.GetSwapMemory()
@@ -40,7 +34,7 @@ func keepConnAndPushData() {
 		_lostRate10010, _ := monitor.LostRate.Load("10010")
 		_lostRate10086, _ := monitor.LostRate.Load("10086")
 		osModel := model.OSModel{
-			Name:           name,
+			Name:           authRes.Name,
 			Host:           _ip,
 			IPVersion:      _ipVersion,
 			State:          true,
@@ -76,7 +70,7 @@ func keepConnAndPushData() {
 			Process:        _process,
 		}
 		bytes, _ := json.Marshal(osModel)
-		(*conn).Write(bytes)
+		(*authRes.Conn).Write(bytes)
 		time.Sleep(time.Second)
 	}
 }
