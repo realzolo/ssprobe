@@ -9,16 +9,24 @@ import (
 
 var authRes *monitor.AuthResult
 
+// TODO: When the server is shut down, the Ping thread is terminated.
 func main() {
-	// Authenticate the client.
-	authRes = monitor.RequestAuth()
-	// Realtime data.
-	monitor.GetRealtimeData()
-	// Stay connected and push data.
-	pushData()
+	for {
+		// Authenticate the client.
+		authRes = monitor.RequestAuth()
+		if !authRes.Ok {
+			time.Sleep(time.Second * 30)
+			continue
+		}
+		// Realtime data.
+		monitor.GetRealtimeData()
+		// Stay connected and push data.
+		pushData()
+	}
 }
 
 func pushData() {
+	var maxNumOfTry = 10
 	for {
 		_ip, _ipVersion, _location := monitor.GetIP()
 		_os, _process, _uptime := monitor.GetHost()
@@ -70,7 +78,13 @@ func pushData() {
 			Process:        _process,
 		}
 		bytes, _ := json.Marshal(osModel)
-		(*authRes.Conn).Write(bytes)
+		_, err := (*authRes.Conn).Write(bytes)
+		if err != nil {
+			maxNumOfTry--
+			if maxNumOfTry == 0 {
+				return
+			}
+		}
 		time.Sleep(time.Second)
 	}
 }

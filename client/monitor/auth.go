@@ -16,6 +16,7 @@ var (
 )
 
 type AuthResult struct {
+	Ok   bool
 	Conn *net.Conn
 	Name string
 }
@@ -45,18 +46,21 @@ func RequestAuth() *AuthResult {
 
 	conn, err := net.Dial("tcp", server+":"+port)
 	if err != nil {
-		log.Fatal("Failed to connect to server.\n", err)
+		log.Println("Failed to connect to server!", err)
+		return &AuthResult{Ok: false}
 	}
 	// Authentication.
 	bytes, _ := json.Marshal(token)
 	_, err = conn.Write(bytes)
 	if err != nil {
-		log.Fatal("Authentication failed! \n", err)
+		log.Println("Authentication failed!", err)
+		return &AuthResult{Ok: false}
 	}
 	var buf = make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil {
-		log.Fatal("Authentication failed! \n", err)
+		log.Println("Authentication failed!", err)
+		return &AuthResult{Ok: false}
 	}
 	var resModel = struct {
 		Code int `json:"code"`
@@ -67,8 +71,8 @@ func RequestAuth() *AuthResult {
 		log.Fatal("Client authentication failed, token is incorrect!\n")
 	}
 	log.Println("Server connection successful!")
-
 	return &AuthResult{
+		Ok:   true,
 		Conn: &conn,
 		Name: name,
 	}

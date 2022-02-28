@@ -69,6 +69,9 @@ func NetSpeed() {
 		}
 		now := uint64(time.Now().Unix())
 		NetInfo["diff"] = now - NetInfo["clock"]
+		if NetInfo["diff"] == 0 {
+			NetInfo["diff"] = 1
+		}
 		NetInfo["clock"] = now
 		NetInfo["byteRecv"] = (totalRecv - NetInfo["byteTotalRecv"]) / NetInfo["diff"]
 		NetInfo["byteSent"] = (totalSent - NetInfo["byteTotalSent"]) / NetInfo["diff"]
