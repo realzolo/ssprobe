@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"server-monitor/client/model"
+	"ssprobe/client/model"
 	"strings"
 )
 

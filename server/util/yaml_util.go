@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,7 @@ type Conf struct {
 
 func (c *Conf) GetConf() *Conf {
 	path, _ := filepath.Abs("config.yaml")
+	fmt.Println(path)
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		path = strings.Replace(path, "config.yaml", "server/config.yaml", 1)

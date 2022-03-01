@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"server-monitor/client/monitor"
-	"server-monitor/common/model"
+	"ssprobe/client/monitor"
+	"ssprobe/common/model"
 	"time"
 )
 

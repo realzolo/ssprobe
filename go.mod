@@ -1,4 +1,4 @@
-module server-monitor
+module ssprobe
 
 go 1.17
 

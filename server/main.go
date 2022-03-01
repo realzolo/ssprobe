@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"server-monitor/common/model"
-	"server-monitor/server/util"
+	"ssprobe/common/model"
+	"ssprobe/server/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -72,7 +72,7 @@ func openWebsocketServe() {
 			time.Sleep(time.Second * 2)
 		}
 	})
-	log.Printf("The Websocket service is enabled and you can get data via \"ws://[ip:%d/json]\".\n", webApiPort)
+	log.Printf("The websocket service is enabled and you can get data via \"ws://[ip:%d/json]\".\n", webApiPort)
 	http.ListenAndServe("0.0.0.0:"+strconv.Itoa(webApiPort), nil)
 }
 
