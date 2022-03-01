@@ -3,6 +3,7 @@ package monitor
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"encoding/binary"
 	"fmt"
 	psnet "github.com/shirou/gopsutil/v3/net"
@@ -19,7 +20,6 @@ const (
 	CM = "221.130.33.52" // www.10086.cn "Ping" is prohibited.
 )
 
-// TODO: 更换为sync.Map
 var NetInfo = map[string]uint64{
 	"byteSent":      0,
 	"byteRecv":      0,
@@ -28,6 +28,7 @@ var NetInfo = map[string]uint64{
 	"clock":         0,
 	"diff":          0,
 }
+
 var (
 	PingTime sync.Map
 	LostRate sync.Map
@@ -50,40 +51,47 @@ type ICMP struct {
 	SequenceNum uint16
 }
 
-func GetRealtimeData() {
-	go PingThread(CT, "10000")
-	go PingThread(CU, "10010")
-	go PingThread(CM, "10086")
-	go NetSpeed()
+func GetRealtimeData(ctx context.Context) {
+	go PingThread(ctx, CT, "10000")
+	go PingThread(ctx, CU, "10010")
+	go PingThread(ctx, CM, "10086")
+	go NetSpeed(ctx)
 }
 
 // NetSpeed Monitor network speed.
-// TODO: There is a bug, the upload speed is not accurate.
-func NetSpeed() {
+// TODO: The upload speed is not accurate, maybe this is a BUG.
+func NetSpeed(ctx context.Context) {
+	var totalRecv uint64 = 0
+	var totalSent uint64 = 0
 	for {
-		counters, _ := psnet.IOCounters(true)
-		var totalRecv uint64 = 0
-		var totalSent uint64 = 0
-		for _, counter := range counters {
-			totalRecv += counter.BytesRecv
-			totalSent += counter.BytesSent
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			counters, _ := psnet.IOCounters(true)
+			for _, counter := range counters {
+				totalRecv += counter.BytesRecv
+				totalSent += counter.BytesSent
+			}
+			now := uint64(time.Now().Unix())
+			NetInfo["diff"] = now - NetInfo["clock"]
+			if NetInfo["diff"] == 0 {
+				NetInfo["diff"] = 1
+			}
+			NetInfo["clock"] = now
+			NetInfo["byteRecv"] = (totalRecv - NetInfo["byteTotalRecv"]) / NetInfo["diff"]
+			NetInfo["byteSent"] = (totalSent - NetInfo["byteTotalSent"]) / NetInfo["diff"]
+			NetInfo["byteTotalRecv"] = totalRecv
+			NetInfo["byteTotalSent"] = totalSent
+			totalRecv = 0
+			totalSent = 0
+			time.Sleep(time.Second)
 		}
-		now := uint64(time.Now().Unix())
-		NetInfo["diff"] = now - NetInfo["clock"]
-		if NetInfo["diff"] == 0 {
-			NetInfo["diff"] = 1
-		}
-		NetInfo["clock"] = now
-		NetInfo["byteRecv"] = (totalRecv - NetInfo["byteTotalRecv"]) / NetInfo["diff"]
-		NetInfo["byteSent"] = (totalSent - NetInfo["byteTotalSent"]) / NetInfo["diff"]
-		NetInfo["byteTotalRecv"] = totalRecv
-		NetInfo["byteTotalSent"] = totalSent
-		time.Sleep(time.Second)
 	}
 }
 
 // PingThread Start a Ping thread to monitor the response time and packet loss rate of the destination host.
-func PingThread(host string, mark string) {
+func PingThread(ctx context.Context, host string, mark string) {
 	var (
 		icmp          ICMP
 		remoteAddr, _ = net.ResolveIPAddr("ip", host)
@@ -111,30 +119,35 @@ func PingThread(host string, mark string) {
 		recv       = make([]byte, 1024)
 	)
 	for {
-		// The packet is sent to the destination address. If the packet fails to be sent, packet loss occurs.
-		if _, err = conn.Write(buffer.Bytes()); err != nil {
-			log.Printf("%s: %v\n", mark, err)
-			lostPacket++
-			enqueue(queue, &lostPacket, 0, mark)
-			time.Sleep(time.Second)
-			continue
-		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			// The packet is sent to the destination address. If the packet fails to be sent, packet loss occurs.
+			if _, err = conn.Write(buffer.Bytes()); err != nil {
+				log.Printf("%s: %v\n", mark, err)
+				lostPacket++
+				enqueue(queue, &lostPacket, 0, mark)
+				time.Sleep(time.Second)
+				continue
+			}
 
-		timeStart := time.Now().UnixMilli()
-		conn.SetReadDeadline(time.Now().Add(time.Second * 3))
-		_, err = conn.Read(recv)
-		// If no response is received, the Ping fails.
-		if err != nil {
-			log.Printf("%s: %v\n", mark, err)
-			lostPacket++
-			enqueue(queue, &lostPacket, 0, mark)
+			timeStart := time.Now().UnixMilli()
+			conn.SetReadDeadline(time.Now().Add(time.Second * 3))
+			_, err = conn.Read(recv)
+			// If no response is received, the Ping fails.
+			if err != nil {
+				log.Printf("%s: %v\n", mark, err)
+				lostPacket++
+				enqueue(queue, &lostPacket, 0, mark)
+				time.Sleep(time.Second)
+				continue
+			}
+			timeEnd := time.Now().UnixMilli()
+			timeCost := int(timeEnd - timeStart)
+			enqueue(queue, &lostPacket, timeCost, mark)
 			time.Sleep(time.Second)
-			continue
 		}
-		timeEnd := time.Now().UnixMilli()
-		timeCost := int(timeEnd - timeStart)
-		enqueue(queue, &lostPacket, timeCost, mark)
-		time.Sleep(time.Second)
 	}
 }
 

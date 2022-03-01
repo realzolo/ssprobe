@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"server-monitor/client/monitor"
 	"server-monitor/common/model"
@@ -9,19 +10,22 @@ import (
 
 var authRes *monitor.AuthResult
 
-// TODO: When the server is shut down, the Ping thread is terminated.
 func main() {
 	for {
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithCancel(ctx)
 		// Authenticate the client.
 		authRes = monitor.RequestAuth()
 		if !authRes.Ok {
-			time.Sleep(time.Second * 30)
+			time.Sleep(time.Second * 60)
 			continue
 		}
 		// Realtime data.
-		monitor.GetRealtimeData()
+		monitor.GetRealtimeData(ctx)
 		// Stay connected and push data.
 		pushData()
+		// End other goroutines.
+		cancelFunc()
 	}
 }
 
