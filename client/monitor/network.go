@@ -19,6 +19,7 @@ const (
 	CM = "221.130.33.52" // www.10086.cn "Ping" is prohibited.
 )
 
+// TODO: 更换为sync.Map
 var NetInfo = map[string]uint64{
 	"byteSent":      0,
 	"byteRecv":      0,

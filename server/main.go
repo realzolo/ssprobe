@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"net"
 	"net/http"
@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var clientKeys []string
@@ -20,6 +21,11 @@ var (
 	serverPort int
 	webApiPort int
 )
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 func init() {
 	var c util.Conf
@@ -30,7 +36,7 @@ func init() {
 }
 
 func main() {
-	go openHttpServe()
+	go openWebsocketServe()
 	openSocketServe()
 }
 
@@ -44,29 +50,29 @@ func openSocketServe() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println(err)
 			continue
 		}
 		go createConn(conn)
 	}
 }
 
-// openHttpServe Enable the HTTP service so that data can be obtained through HTTP requests.
-func openHttpServe() {
+// openWebsocketServe Enable the websocket service to transmit data to the Web in real time.
+func openWebsocketServe() {
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
-		w.Header().Set("content-type", "application/json")
-
+		conn, _ := upgrader.Upgrade(w, r, nil)
 		var tempArray []*interface{}
-		for _, clientKey := range clientKeys {
-			v, _ := data.Load(clientKey)
-			tempArray = append(tempArray, &v)
+		for {
+			for _, clientKey := range clientKeys {
+				v, _ := data.Load(clientKey)
+				tempArray = append(tempArray, &v)
+			}
+			bytes, _ := json.Marshal(tempArray)
+			tempArray = nil
+			conn.WriteMessage(websocket.TextMessage, bytes)
+			time.Sleep(time.Second * 2)
 		}
-		bytes, _ := json.Marshal(tempArray)
-		w.Write(bytes)
 	})
-	log.Printf("The HTTP service is enabled and you can get data via [ip:%d/json].\n", webApiPort)
+	log.Printf("The Websocket service is enabled and you can get data via \"ws://[ip:%d/json]\".\n", webApiPort)
 	http.ListenAndServe("0.0.0.0:"+strconv.Itoa(webApiPort), nil)
 }
 
