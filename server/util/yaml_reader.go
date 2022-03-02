@@ -15,7 +15,7 @@ type Conf struct {
 }
 
 func (c *Conf) GetConf() (*Conf, error) {
-	yamlFile, err := ioutil.ReadFile(PathRewrite("config.yaml"))
+	yamlFile, err := ioutil.ReadFile("config.yaml")
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
 		return nil, err

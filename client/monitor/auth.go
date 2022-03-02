@@ -2,9 +2,10 @@ package monitor
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 	"os"
+	"ssprobe-common/model"
+	"ssprobe-common/util"
 	"strings"
 )
 
@@ -21,8 +22,10 @@ type AuthResult struct {
 	Name string
 }
 
-// collectConfig Collect client configuration information.
-func collectConfig() {
+var logger util.Logger
+
+// parseParam Parse user parameters.
+func parseParam() {
 	args := os.Args
 	for _, arg := range args {
 		if strings.Contains(arg, "--name=") {
@@ -36,41 +39,39 @@ func collectConfig() {
 		}
 	}
 	if len(name) == 0 || len(server) == 0 || len(port) == 0 || len(token) == 0 {
-		log.Fatalf("The argument you provided does not match [--name,--server,--port,--token]. \n")
+		logger.LogWithExit("The argument you provided does not match [--name,--server,--port,--token].")
 	}
 }
 
 // RequestAuth Authenticate the client and return the connection.
 func RequestAuth() *AuthResult {
-	collectConfig()
+	parseParam()
 
 	conn, err := net.Dial("tcp", server+":"+port)
 	if err != nil {
-		log.Println("Failed to connect to server!", err)
+		logger.LogWithError(err, "Failed to connect to server!")
 		return &AuthResult{Ok: false}
 	}
 	// Authentication.
 	bytes, _ := json.Marshal(token)
 	_, err = conn.Write(bytes)
 	if err != nil {
-		log.Println("Authentication failed!", err)
+		logger.LogWithError(err, "Authentication failed!")
 		return &AuthResult{Ok: false}
 	}
 	var buf = make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil {
-		log.Println("Authentication failed!", err)
+		logger.LogWithError(err, "Authentication failed!")
 		return &AuthResult{Ok: false}
 	}
-	var resModel = struct {
-		Code int `json:"code"`
-	}{}
-	json.Unmarshal(buf[:n], &resModel)
+	var resModel model.AuthResponse
+	_ = json.Unmarshal(buf[:n], &resModel)
 	// The token is incorrect.
 	if resModel.Code == -1 {
-		log.Fatal("Client authentication failed, token is incorrect!\n")
+		logger.LogWithExit("Client authentication failed, token is incorrect!")
 	}
-	log.Println("Server connection successful!")
+	logger.OnlyLog("Server connection successful!")
 	return &AuthResult{
 		Ok:   true,
 		Conn: &conn,

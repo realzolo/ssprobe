@@ -12,8 +12,7 @@ var authRes *monitor.AuthResult
 
 func main() {
 	for {
-		ctx := context.Background()
-		ctx, cancelFunc := context.WithCancel(ctx)
+		ctx, cancelFunc := context.WithCancel(context.Background())
 		// Authenticate the client.
 		authRes = monitor.RequestAuth()
 		if !authRes.Ok {
@@ -23,13 +22,13 @@ func main() {
 		// Realtime data.
 		monitor.GetRealtimeData(ctx)
 		// Stay connected and push data.
-		pushData()
+		pushDataToServer()
 		// End other goroutines.
 		cancelFunc()
 	}
 }
 
-func pushData() {
+func pushDataToServer() {
 	var maxNumOfTry = 10
 	for {
 		_ip, _ipVersion, _location := monitor.GetIP()
@@ -82,13 +81,12 @@ func pushData() {
 			Process:        _process,
 		}
 		bytes, _ := json.Marshal(osModel)
-		_, err := (*authRes.Conn).Write(bytes)
-		if err != nil {
+		if _, err := (*authRes.Conn).Write(bytes); err != nil {
 			maxNumOfTry--
 			if maxNumOfTry == 0 {
 				return
 			}
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 2)
 	}
 }

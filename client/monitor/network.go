@@ -14,6 +14,14 @@ import (
 	"time"
 )
 
+type ICMP struct {
+	Type        uint8
+	Code        uint8
+	Checksum    uint16
+	Identifier  uint16
+	SequenceNum uint16
+}
+
 const (
 	CT = "www.189.cn"
 	CU = "www.10010.com"
@@ -41,14 +49,6 @@ func init() {
 	LostRate.Store("10000", 0)
 	LostRate.Store("10010", 0)
 	LostRate.Store("10086", 0)
-}
-
-type ICMP struct {
-	Type        uint8
-	Code        uint8
-	Checksum    uint16
-	Identifier  uint16
-	SequenceNum uint16
 }
 
 func GetRealtimeData(ctx context.Context) {
@@ -107,8 +107,8 @@ func PingThread(ctx context.Context, host string, mark string) {
 		buffer      bytes.Buffer
 		originBytes = make([]byte, 1024)
 	)
-	binary.Write(&buffer, binary.BigEndian, icmp)
-	binary.Write(&buffer, binary.BigEndian, originBytes[0:4])
+	_ = binary.Write(&buffer, binary.BigEndian, icmp)
+	_ = binary.Write(&buffer, binary.BigEndian, originBytes[0:4])
 	b := buffer.Bytes()
 	binary.BigEndian.PutUint16(b[2:], checkSum(b))
 
@@ -124,7 +124,7 @@ func PingThread(ctx context.Context, host string, mark string) {
 		default:
 			// The packet is sent to the destination address. If the packet fails to be sent, packet loss occurs.
 			if _, err = conn.Write(buffer.Bytes()); err != nil {
-				log.Printf("%s: %v\n", mark, err)
+				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
 				time.Sleep(time.Second * 2)
@@ -132,11 +132,10 @@ func PingThread(ctx context.Context, host string, mark string) {
 			}
 
 			timeStart := time.Now().UnixMilli()
-			conn.SetReadDeadline(time.Now().Add(time.Second * 3))
-			_, err = conn.Read(recv)
+			_ = conn.SetReadDeadline(time.Now().Add(time.Second * 3))
 			// If no response is received, the Ping fails.
-			if err != nil {
-				log.Printf("%s: %v\n", mark, err)
+			if _, err = conn.Read(recv); err != nil {
+				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
 				time.Sleep(time.Second * 2)
