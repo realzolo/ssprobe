@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"ssprobe/client/monitor"
-	"ssprobe/common/model"
+	"ssprobe-client/monitor"
+	"ssprobe-common/model"
 	"time"
 )
 
@@ -33,7 +33,7 @@ func pushData() {
 	var maxNumOfTry = 10
 	for {
 		_ip, _ipVersion, _location := monitor.GetIP()
-		_os, _process, _uptime := monitor.GetHost()
+		_platform, _process, _uptime := monitor.GetHost()
 		_memTotal, _memUsed, _memUsedPct := monitor.GetMemory()
 		_swapMemTotal, _swapMemUsed, _swapMemUsedPct := monitor.GetSwapMemory()
 		_hddTotal, _hddUsed, _hddUsedPct := monitor.GetHDDSize()
@@ -50,7 +50,7 @@ func pushData() {
 			Host:           _ip,
 			IPVersion:      _ipVersion,
 			State:          true,
-			OS:             _os,
+			Platform:       _platform,
 			Location:       _location,
 			Uptime:         _uptime,
 			Load1:          _load1,

@@ -85,7 +85,7 @@ func NetSpeed(ctx context.Context) {
 			NetInfo["byteTotalSent"] = totalSent
 			totalRecv = 0
 			totalSent = 0
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
 		}
 	}
 }
@@ -93,7 +93,7 @@ func NetSpeed(ctx context.Context) {
 // PingThread Start a Ping thread to monitor the response time and packet loss rate of the destination host.
 func PingThread(ctx context.Context, host string, mark string) {
 	var (
-		icmp          ICMP
+		icmp          = ICMP{8, 0, 0, 0, 0}
 		remoteAddr, _ = net.ResolveIPAddr("ip", host)
 	)
 	conn, err := net.DialIP("ip4:icmp", nil, remoteAddr)
@@ -103,7 +103,6 @@ func PingThread(ctx context.Context, host string, mark string) {
 	}
 	defer conn.Close()
 
-	icmp = ICMP{8, 0, 0, 0, 0}
 	var (
 		buffer      bytes.Buffer
 		originBytes = make([]byte, 1024)
@@ -128,7 +127,7 @@ func PingThread(ctx context.Context, host string, mark string) {
 				log.Printf("%s: %v\n", mark, err)
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * 2)
 				continue
 			}
 
@@ -140,13 +139,13 @@ func PingThread(ctx context.Context, host string, mark string) {
 				log.Printf("%s: %v\n", mark, err)
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * 2)
 				continue
 			}
 			timeEnd := time.Now().UnixMilli()
 			timeCost := int(timeEnd - timeStart)
 			enqueue(queue, &lostPacket, timeCost, mark)
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
 		}
 	}
 }

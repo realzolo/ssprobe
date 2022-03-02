@@ -5,7 +5,7 @@ type OSModel struct {
 	Host           string  `json:"host"`
 	IPVersion      string  `json:"ip_version"`
 	State          bool    `json:"state"`
-	OS             string  `json:"os"`
+	Platform       string  `json:"platform"`
 	Location       string  `json:"location"`
 	Uptime         uint64  `json:"uptime"` // Unit: second
 	Load1          float64 `json:"load_1"`

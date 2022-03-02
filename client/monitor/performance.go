@@ -6,6 +6,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,5 +31,9 @@ func GetLoad() (float64, float64, float64) {
 // Return the type, number of processes, and running time of the system.
 func GetHost() (string, uint64, uint64) {
 	_host, _ := host.Info()
-	return _host.OS, _host.Procs, _host.Uptime
+	platform := strings.ToLower(_host.Platform)
+	if strings.Contains(platform, "windows") {
+		platform = "windows"
+	}
+	return platform, _host.Procs, _host.Uptime
 }

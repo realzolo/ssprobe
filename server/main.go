@@ -2,51 +2,67 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"ssprobe/common/model"
-	"ssprobe/server/util"
+	"ssprobe-common/model"
+	"ssprobe-server/util"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-var clientKeys []string
-var data = sync.Map{}
 var (
-	token      string
-	serverPort int
-	webApiPort int
+	clientKeys []string
+	data       = sync.Map{}
+	conf       *util.Conf
+	upgrader   = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
 )
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
 
 func init() {
 	var c util.Conf
-	conf := c.GetConf()
-	token = conf.Token
-	serverPort = conf.Port.Server
-	webApiPort = conf.Port.WebApi
+	_conf, err := c.GetConf()
+	if err != nil {
+		log.Fatalf("Configuration file parsing failed! %v\n", err.Error())
+	}
+	conf = _conf
 }
 
 func main() {
+	go openWebServe()
 	go openWebsocketServe()
 	openSocketServe()
 }
 
+func openWebServe() {
+	// Disable console logging.
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = ioutil.Discard
+
+	router := gin.Default()
+	router.LoadHTMLFiles("static/index.html")
+	router.Static("/static", "static")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
+	if err := router.Run(":" + strconv.Itoa(conf.Port.Web)); err != nil {
+		log.Print(err)
+	}
+}
+
 // openSocketServe Enable the socket service to receive data from clients.
 func openSocketServe() {
-	listener, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(serverPort))
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(conf.Port.Server))
 	if err != nil {
 		log.Fatalf("Service initialization failed! %v", err)
 	}
-	log.Printf("Server initialized successfully, listening on port %d...\n", serverPort)
+	log.Printf("Server initialized successfully, listening on port %d...\n", conf.Port.Server)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -58,7 +74,7 @@ func openSocketServe() {
 
 // openWebsocketServe Enable the websocket service to transmit data to the Web in real time.
 func openWebsocketServe() {
-	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, _ := upgrader.Upgrade(w, r, nil)
 		var tempArray []*interface{}
 		for {
@@ -72,8 +88,8 @@ func openWebsocketServe() {
 			time.Sleep(time.Second * 2)
 		}
 	})
-	log.Printf("The websocket service is enabled and you can get data via \"ws://[ip:%d/json]\".\n", webApiPort)
-	http.ListenAndServe("0.0.0.0:"+strconv.Itoa(webApiPort), nil)
+	log.Printf("The websocket service is enabled and you can get data via \"ws://[ip:%d/json]\".\n", conf.Port.Websocket)
+	http.ListenAndServe(":"+strconv.Itoa(conf.Port.Websocket), nil)
 }
 
 func createConn(conn net.Conn) {
@@ -121,14 +137,14 @@ func authClient(conn *net.Conn) error {
 	if err != nil {
 		return err
 	}
-	_token := string(buf[:n])
-	_token = strings.TrimLeft(_token, "\"")
-	_token = strings.TrimRight(_token, "\"")
+	token := string(buf[:n])
+	token = strings.TrimLeft(token, "\"")
+	token = strings.TrimRight(token, "\"")
 	resModel := struct {
 		Code int `json:"code"`
 	}{Code: -1}
 	// Authentication failed!
-	if !strings.EqualFold(token, _token) {
+	if strings.Compare(conf.Token, token) != 0 {
 		bytes, _ := json.Marshal(resModel)
 		(*conn).Write(bytes)
 		return err
