@@ -40,6 +40,7 @@ var NetInfo = map[string]uint64{
 var (
 	PingTime sync.Map
 	LostRate sync.Map
+	lock     sync.Mutex
 )
 
 func init() {
@@ -74,10 +75,9 @@ func NetSpeed(ctx context.Context) {
 				totalSent += counter.BytesSent
 			}
 			now := uint64(time.Now().Unix())
+
+			lock.Lock()
 			NetInfo["diff"] = now - NetInfo["clock"]
-			if NetInfo["diff"] == 0 {
-				NetInfo["diff"] = 1
-			}
 			NetInfo["clock"] = now
 			NetInfo["byteRecv"] = (totalRecv - NetInfo["byteTotalRecv"]) / NetInfo["diff"]
 			NetInfo["byteSent"] = (totalSent - NetInfo["byteTotalSent"]) / NetInfo["diff"]
@@ -85,6 +85,8 @@ func NetSpeed(ctx context.Context) {
 			NetInfo["byteTotalSent"] = totalSent
 			totalRecv = 0
 			totalSent = 0
+			lock.Unlock()
+
 			time.Sleep(time.Second * 2)
 		}
 	}
