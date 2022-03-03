@@ -1,5 +1,9 @@
-token: 123456
-port:
-  server: 3384
-  web: 8080
-  websocket: 9000
+server:
+  token: 123456
+  port: 3384
+  websocketPort: 9000
+
+# Web Setting
+web:
+  enable: true
+  title: Zolo's Server Monitor

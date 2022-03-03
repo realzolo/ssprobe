@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"ssprobe-common/model"
 	"ssprobe-common/util"
-	_util "ssprobe-server/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,17 +19,27 @@ var (
 	logger     util.Logger
 	clientKeys []string
 	data       = sync.Map{}
-	conf       *_util.Conf
+	conf       *Conf
 	upgrader   = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 )
 
 func init() {
-	var c _util.Conf
-	_conf, err := c.GetConf()
+	var c Conf
+	_conf, err := c.LoadConfig()
 	logger.ErrorWithExit(err, "Configuration file parsing failed!")
-	conf = _conf
+	conf = &Conf{
+		Server: Server{
+			Token:         c.SetOrDefault(_conf.Server.Token, "123456").(string),
+			Port:          c.SetOrDefault(_conf.Server.Port, 3384).(int),
+			WebsocketPort: c.SetOrDefault(_conf.Server.WebsocketPort, 9000).(int),
+		},
+		Web: Web{
+			Enable: _conf.Web.Enable,
+			Title:  c.SetOrDefault(_conf.Web.Title, "SSProbe").(string),
+		},
+	}
 }
 
 func main() {
@@ -40,25 +49,35 @@ func main() {
 }
 
 func openWebServe() {
+	if !conf.Web.Enable {
+		return
+	}
 	// Disable console logging.
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
 
 	router := gin.Default()
+	router.Use(Cors())
 	router.LoadHTMLFiles("static/index.html")
 	router.Static("/static", "static")
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
-	err := router.Run(":" + strconv.Itoa(conf.Port.Web))
+	router.GET("/ws", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"title":          conf.Web.Title,
+			"websocket_port": conf.Server.WebsocketPort,
+		})
+	})
+	err := router.Run(":10240")
 	logger.LogWithError(err, "")
 }
 
 // openSocketServe Enable the socket service to receive data from clients.
 func openSocketServe() {
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(conf.Port.Server))
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(conf.Server.Port))
 	logger.ErrorWithExit(err, "Service initialization failed!")
-	logger.LogWithFormat("Server initialized successfully, listening on port %d...", conf.Port.Server)
+	logger.LogWithFormat("Server initialized successfully, listening on port %d...", conf.Server.Port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -84,8 +103,8 @@ func openWebsocketServe() {
 			time.Sleep(time.Second * 2)
 		}
 	})
-	logger.LogWithFormat("The websocket service is enabled and you can get data via \"ws://[ip:%d/json]\".", conf.Port.Websocket)
-	err := http.ListenAndServe(":"+strconv.Itoa(conf.Port.Websocket), nil)
+	logger.LogWithFormat("The websocket service is enabled and you can get data via \"ws://ip:%d\".", conf.Server.WebsocketPort)
+	err := http.ListenAndServe(":"+strconv.Itoa(conf.Server.WebsocketPort), nil)
 	logger.ErrorWithExit(err, "")
 }
 
@@ -96,14 +115,14 @@ func createConn(conn net.Conn) {
 	}
 
 	clientIp := parseIpAddress(conn.RemoteAddr().String())
-	logger.LogWithFormat("[%s] is connected!", clientIp)
+	logger.LogWithFormat("%s is connected!", clientIp)
 	// Listen to the client and read the data.
 	for {
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		// If the client goes offline, change its state to false.
 		if err != nil {
-			logger.LogWithFormat("[%s]: connection break!", clientIp)
+			logger.LogWithFormat("%s connection break!", clientIp)
 			if v, ok := data.Load(clientIp); ok {
 				osModel := v.(*model.OSModel)
 				osModel.State = false
