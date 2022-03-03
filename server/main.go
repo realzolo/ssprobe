@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
@@ -9,6 +10,10 @@ import (
 	"net/http"
 	"ssprobe-common/model"
 	"ssprobe-common/util"
+	"ssprobe-server/config"
+	m "ssprobe-server/model"
+	"ssprobe-server/notify"
+	u "ssprobe-server/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,25 +24,31 @@ var (
 	logger     util.Logger
 	clientKeys []string
 	data       = sync.Map{}
-	conf       *Conf
+	conf       *u.Conf
 	upgrader   = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 )
 
 func init() {
-	var c Conf
+	var c u.Conf
 	_conf, err := c.LoadConfig()
 	logger.ErrorWithExit(err, "Configuration file parsing failed!")
-	conf = &Conf{
-		Server: Server{
+	conf = &u.Conf{
+		Server: m.Server{
 			Token:         c.SetOrDefault(_conf.Server.Token, "123456").(string),
 			Port:          c.SetOrDefault(_conf.Server.Port, 3384).(int),
 			WebsocketPort: c.SetOrDefault(_conf.Server.WebsocketPort, 9000).(int),
 		},
-		Web: Web{
+		Web: m.Web{
 			Enable: _conf.Web.Enable,
 			Title:  c.SetOrDefault(_conf.Web.Title, "SSProbe").(string),
+		},
+		Notifier: m.Notifier{
+			Telegram: m.Telegram{
+				Enable:   c.Telegram.Enable,
+				BotToken: c.Telegram.BotToken,
+			},
 		},
 	}
 }
@@ -45,6 +56,7 @@ func init() {
 func main() {
 	go openWebServe()
 	go openWebsocketServe()
+	go notify.InitTelegramBot(conf.Telegram)
 	openSocketServe()
 }
 
@@ -57,7 +69,7 @@ func openWebServe() {
 	gin.DefaultWriter = ioutil.Discard
 
 	router := gin.Default()
-	router.Use(Cors())
+	router.Use(config.Cors())
 	router.LoadHTMLFiles("static/index.html")
 	router.Static("/static", "static")
 	router.GET("/", func(c *gin.Context) {
@@ -114,7 +126,7 @@ func createConn(conn net.Conn) {
 		return
 	}
 
-	clientIp := parseIpAddress(conn.RemoteAddr().String())
+	clientIp := u.ParseAddress(conn.RemoteAddr().String())
 	logger.LogWithFormat("%s is connected!", clientIp)
 	// Listen to the client and read the data.
 	for {
@@ -126,6 +138,7 @@ func createConn(conn net.Conn) {
 			if v, ok := data.Load(clientIp); ok {
 				osModel := v.(*model.OSModel)
 				osModel.State = false
+				go notify.SendToTelegram(fmt.Sprintf("[%s - %s](%s) is offline.", osModel.Name, osModel.Location, osModel.Host))
 			}
 			return
 		}
@@ -163,9 +176,4 @@ func authClient(conn *net.Conn) error {
 	bytes, _ := json.Marshal(resModel)
 	_, _ = (*conn).Write(bytes)
 	return nil
-}
-
-// Get the IP address, for example: 127.0.0.1:8000 -> 127.0.0.1
-func parseIpAddress(address string) string {
-	return address[:strings.LastIndex(address, ":")]
 }

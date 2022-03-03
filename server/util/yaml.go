@@ -1,22 +1,15 @@
-package main
+package util
 
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"ssprobe-server/model"
 )
 
 type Conf struct {
-	Server `yaml:"server"`
-	Web    `yaml:"web"`
-}
-type Server struct {
-	Token         string `yaml:"token"`
-	Port          int    `yaml:"port"`
-	WebsocketPort int    `yaml:"websocketPort"`
-}
-type Web struct {
-	Enable bool   `yaml:"enable"`
-	Title  string `yaml:"title"`
+	model.Server   `yaml:"server"`
+	model.Web      `yaml:"web"`
+	model.Notifier `yaml:"notifier"`
 }
 
 func (c *Conf) LoadConfig() (*Conf, error) {

@@ -3,7 +3,11 @@ server:
   port: 3384
   websocketPort: 9000
 
-# Web Setting
 web:
   enable: true
   title: Zolo's Server Monitor
+
+notifier:
+  telegram:
+    enable: false
+    botToken: 5185378646:AAH8tODlas2eq-WwAVHc5_g3_mh6jDCd-o0
