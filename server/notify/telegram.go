@@ -1,10 +1,12 @@
 package notify
 
 import (
+	"fmt"
 	telegram "gopkg.in/telebot.v3"
 	"log"
 	"math/rand"
 	"ssprobe-common/util"
+	"ssprobe-server/consts"
 	"ssprobe-server/model"
 	"strings"
 	"time"
@@ -17,7 +19,7 @@ var (
 )
 
 func InitTelegramBot(tg model.Telegram) {
-	if !tg.Enable {
+	if !tg.Enable || !tg.UseEmbed {
 		return
 	}
 	pref := telegram.Settings{
@@ -44,20 +46,49 @@ func InitTelegramBot(tg model.Telegram) {
 		hasInit = true
 		bot = _bot
 		receiver = c.Sender()
+		if tg.Language == consts.CHINESE {
+			return c.Send("绑定成功,你将会收到来自此机器人的通知!")
+		}
 		return c.Send("Bind successfully, you will receive notification from this robot!")
 	})
 
 	_bot.Start()
 }
 
-func SendToTelegram(message string) {
-	if bot == nil {
+func SendToTelegram(tg *model.Telegram, node *model.Node, actionType int64) {
+	if bot == nil || !tg.Enable {
 		return
 	}
-	_, err := bot.Send(receiver, message)
-	if err != nil {
-		log.Printf("消息发送失败！%v\n", err)
+	var message string
+	language := strings.ToUpper(tg.Language)
+	switch language {
+	case consts.ENGLISH:
+		switch actionType {
+		case consts.NEW:
+			message = fmt.Sprintf("Meow ~, [%s - %s](%s) is online and running normally.", node.Name, node.Location, node.Host)
+			break
+		case consts.RENEW:
+			message = fmt.Sprintf("Meow ~, your node [%s - %s](%s) returns to normal.", node.Name, node.Location, node.Host)
+			break
+		case consts.DOWN:
+			message = fmt.Sprintf("Meow ~, your node[%s - %s](%s) failed and went offline.", node.Name, node.Location, node.Host)
+			break
+		}
+	case consts.CHINESE:
+		switch actionType {
+		case consts.NEW:
+			message = fmt.Sprintf("喵喵喵~, 您的机器[%s - %s](%s)已上线,状态正常!", node.Name, node.Location, node.Host)
+			break
+		case consts.RENEW:
+			message = fmt.Sprintf("喵喵喵~ [%s - %s](%s)节点恢复了喵~", node.Name, node.Location, node.Host)
+			break
+		case consts.DOWN:
+			message = fmt.Sprintf("喵喵喵~ [%s - %s](%s)节点掉线了喵~", node.Name, node.Location, node.Host)
+			break
+		}
 	}
+	_, err := bot.Send(receiver, message)
+	logger.LogWithError(err, "")
 }
 
 func randString(len int) string {

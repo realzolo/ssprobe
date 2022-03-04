@@ -11,23 +11,11 @@ type Web struct {
 }
 type Notifier struct {
 	Telegram `yaml:"telegram"`
-	//Email    `yaml:"email"`
 }
 type Telegram struct {
 	Enable   bool   `yaml:"enable"`
+	UseEmbed bool   `yaml:"useEmbed"`
+	Language string `yaml:"language"`
 	BotToken string `yaml:"botToken"`
+	UserId   string `yaml:"userId"`
 }
-
-/*
-type Email struct {
-	Enable   bool `yaml:"enable"`
-	Sender   Mail `yaml:"sender"`
-	Receiver Mail `yaml:"receiver"`
-}
-
-type Mail struct {
-	Host     string `yaml:"host"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-}
-*/

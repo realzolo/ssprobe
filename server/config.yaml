@@ -9,5 +9,9 @@ web:
 
 notifier:
   telegram:
-    enable: false
-    botToken: 5185378646:AAH8tODlas2eq-WwAVHc5_g3_mh6jDCd-o0
+    enable: true
+    # useEmbed: Use the built-in Bot for this application. If you are in mainland China, enabling this option will cause you to be unable to send and receive notifications due to network failure.
+    useEmbed: false
+    language: chinese
+    botToken: xxxxxxxxxxxxxxxxxxxxxxxxxxx
+    userId: 1953745499

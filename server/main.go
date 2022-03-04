@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
@@ -11,6 +10,7 @@ import (
 	"ssprobe-common/model"
 	"ssprobe-common/util"
 	"ssprobe-server/config"
+	"ssprobe-server/consts"
 	m "ssprobe-server/model"
 	"ssprobe-server/notify"
 	u "ssprobe-server/util"
@@ -47,7 +47,10 @@ func init() {
 		Notifier: m.Notifier{
 			Telegram: m.Telegram{
 				Enable:   c.Telegram.Enable,
+				UseEmbed: c.Telegram.UseEmbed,
+				Language: c.SetOrDefault(c.Telegram.Language, consts.ENGLISH).(string),
 				BotToken: c.Telegram.BotToken,
+				UserId:   c.Telegram.UserId,
 			},
 		},
 	}
@@ -138,19 +141,22 @@ func createConn(conn net.Conn) {
 			if v, ok := data.Load(clientIp); ok {
 				osModel := v.(*model.OSModel)
 				osModel.State = false
-				go notify.SendToTelegram(fmt.Sprintf("[%s - %s](%s) is offline.", osModel.Name, osModel.Location, osModel.Host))
+				noticeDispatcher(osModel, consts.DOWN)
 			}
 			return
 		}
-		var osModel model.OSModel
+		var osModel *model.OSModel
 		if err = json.Unmarshal(buf[:n], &osModel); err != nil {
 			continue
 		}
 
-		if _, ok := data.Load(clientIp); !ok {
+		if value, ok := data.Load(clientIp); ok && !value.(*model.OSModel).State {
+			go noticeDispatcher(osModel, consts.RENEW)
+		} else if !ok {
+			go noticeDispatcher(osModel, consts.NEW)
 			clientKeys = append(clientKeys, clientIp)
 		}
-		data.Store(clientIp, &osModel)
+		data.Store(clientIp, osModel)
 	}
 }
 
@@ -176,4 +182,15 @@ func authClient(conn *net.Conn) error {
 	bytes, _ := json.Marshal(resModel)
 	_, _ = (*conn).Write(bytes)
 	return nil
+}
+
+func noticeDispatcher(osModel *model.OSModel, actionType int64) {
+	node := &m.Node{
+		Name:     osModel.Name,
+		Location: osModel.Location,
+		Host:     osModel.Host,
+	}
+	notify.SendToTelegram(&conf.Telegram, node, actionType)
+	notify.SentToTelegramByHttp(&conf.Telegram, node, actionType)
+	// ...
 }
