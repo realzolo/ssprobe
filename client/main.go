@@ -25,6 +25,7 @@ func main() {
 		pushDataToServer()
 		// End other goroutines.
 		cancelFunc()
+		time.Sleep(time.Second * 60)
 	}
 }
 
@@ -38,12 +39,19 @@ func pushDataToServer() {
 		_hddTotal, _hddUsed, _hddUsedPct := monitor.GetHDDSize()
 		_cpuCount, _cpuUsedPct := monitor.GetCPU()
 		_load1, _load5, _load15 := monitor.GetLoad()
+
+		_netDownSpeed := monitor.NetInfo["byteRecv"]
+		_nettUpSpeed := monitor.NetInfo["byteSent"]
+		_byteRecvTotal := monitor.NetInfo["byteTotalRecv"]
+		_byteSentTotal := monitor.NetInfo["byteTotalSent"]
+
 		_ping10000, _ := monitor.PingTime.Load("10000")
 		_ping10010, _ := monitor.PingTime.Load("10010")
 		_ping10086, _ := monitor.PingTime.Load("10086")
 		_lostRate10000, _ := monitor.LostRate.Load("10000")
 		_lostRate10010, _ := monitor.LostRate.Load("10010")
 		_lostRate10086, _ := monitor.LostRate.Load("10086")
+
 		osModel := model.OSModel{
 			Name:           authRes.Name,
 			Host:           _ip,
@@ -66,10 +74,10 @@ func pushDataToServer() {
 			HddUsedPct:     _hddUsedPct,
 			CpuCount:       _cpuCount,
 			CpuUsedPct:     _cpuUsedPct,
-			NetDownSpeed:   monitor.NetInfo["byteRecv"],
-			NetUpSpeed:     monitor.NetInfo["byteSent"],
-			ByteRecvTotal:  monitor.NetInfo["byteTotalRecv"],
-			ByteSentTotal:  monitor.NetInfo["byteTotalSent"],
+			NetDownSpeed:   _netDownSpeed,
+			NetUpSpeed:     _nettUpSpeed,
+			ByteRecvTotal:  _byteRecvTotal,
+			ByteSentTotal:  _byteSentTotal,
 			Ping10000:      _ping10000.(int),
 			Ping10010:      _ping10010.(int),
 			Ping10086:      _ping10086.(int),
@@ -82,8 +90,7 @@ func pushDataToServer() {
 		}
 		bytes, _ := json.Marshal(osModel)
 		if _, err := (*authRes.Conn).Write(bytes); err != nil {
-			maxNumOfTry--
-			if maxNumOfTry == 0 {
+			if maxNumOfTry--; maxNumOfTry == 0 {
 				return
 			}
 		}
