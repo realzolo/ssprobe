@@ -3,6 +3,7 @@ package util
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"reflect"
 	"ssprobe-server/model"
 )
 
@@ -12,18 +13,21 @@ type Conf struct {
 	model.Notifier `yaml:"notifier"`
 }
 
-func (c *Conf) LoadConfig() (*Conf, error) {
+func (c *Conf) LoadConfig() error {
 	yamlFile, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
 		yamlFile, err = ioutil.ReadFile("config.yml")
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return c, yaml.Unmarshal(yamlFile, c)
+	return yaml.Unmarshal(yamlFile, c)
 }
 
 func (c *Conf) SetOrDefault(value interface{}, defaultValue interface{}) interface{} {
+	if reflect.TypeOf(value).Name() == "bool" {
+		return defaultValue
+	}
 	if value != "" && value != 0 {
 		return value
 	}

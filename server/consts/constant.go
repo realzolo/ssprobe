@@ -1,12 +1,19 @@
 package consts
 
 const (
-	ENGLISH = "ENGLISH"
-	CHINESE = "CHINESE"
+	English = "ENGLISH"
+	Chinese = "CHINESE"
 )
 
 const (
-	NEW = iota
-	RENEW
-	DOWN
+	Online = iota
+	Recover
+	Offline
+)
+
+const (
+	ServerToken   = "123456"
+	ServerPort    = 3384
+	WebsocketPort = 9000
+	SiteTitle     = "SSProbe"
 )

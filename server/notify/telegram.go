@@ -3,7 +3,6 @@ package notify
 import (
 	"fmt"
 	telegram "gopkg.in/telebot.v3"
-	"log"
 	"math/rand"
 	"ssprobe-common/util"
 	"ssprobe-server/consts"
@@ -28,7 +27,7 @@ func InitTelegramBot(tg model.Telegram) {
 	}
 	_bot, err := telegram.NewBot(pref)
 	if err != nil {
-		log.Printf("Telegram bot initialization failed! %v\n", err)
+		logger.OnlyLog("Bot token does not exist, bot initialization failed.")
 		return
 	}
 	var (
@@ -37,16 +36,13 @@ func InitTelegramBot(tg model.Telegram) {
 	)
 	logger.LogWithFormat("Your Telegram Bot token is %v", token)
 	_bot.Handle(telegram.OnText, func(c telegram.Context) error {
-		if hasInit {
-			return c.Delete()
-		}
-		if strings.Compare(token, c.Text()) != 0 {
+		if hasInit || token != c.Text() {
 			return c.Delete()
 		}
 		hasInit = true
 		bot = _bot
 		receiver = c.Sender()
-		if tg.Language == consts.CHINESE {
+		if strings.ToUpper(tg.Language) == consts.Chinese {
 			return c.Send("绑定成功,你将会收到来自此机器人的通知!")
 		}
 		return c.Send("Bind successfully, you will receive notification from this robot!")
@@ -62,28 +58,28 @@ func SendToTelegram(tg *model.Telegram, node *model.Node, actionType int64) {
 	var message string
 	language := strings.ToUpper(tg.Language)
 	switch language {
-	case consts.ENGLISH:
+	case consts.English:
 		switch actionType {
-		case consts.NEW:
-			message = fmt.Sprintf("Meow ~, [%s - %s](%s) is online and running normally.", node.Name, node.Location, node.Host)
+		case consts.Online:
+			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) is online!", node.Name, node.Location, node.Host)
 			break
-		case consts.RENEW:
-			message = fmt.Sprintf("Meow ~, your node [%s - %s](%s) returns to normal.", node.Name, node.Location, node.Host)
+		case consts.Recover:
+			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) has been recovered.", node.Name, node.Location, node.Host)
 			break
-		case consts.DOWN:
-			message = fmt.Sprintf("Meow ~, your node[%s - %s](%s) failed and went offline.", node.Name, node.Location, node.Host)
+		case consts.Offline:
+			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) failed and went offline.", node.Name, node.Location, node.Host)
 			break
 		}
-	case consts.CHINESE:
+	case consts.Chinese:
 		switch actionType {
-		case consts.NEW:
-			message = fmt.Sprintf("喵喵喵~, 您的机器[%s - %s](%s)已上线,状态正常!", node.Name, node.Location, node.Host)
+		case consts.Online:
+			message = fmt.Sprintf("喵喵喵~, 您的机器 [%s - %s](%s) 已上线,状态正常!", node.Name, node.Location, node.Host)
 			break
-		case consts.RENEW:
-			message = fmt.Sprintf("喵喵喵~ [%s - %s](%s)节点恢复了喵~", node.Name, node.Location, node.Host)
+		case consts.Recover:
+			message = fmt.Sprintf("喵喵喵~, 节点 [%s - %s](%s) 恢复了~", node.Name, node.Location, node.Host)
 			break
-		case consts.DOWN:
-			message = fmt.Sprintf("喵喵喵~ [%s - %s](%s)节点掉线了喵~", node.Name, node.Location, node.Host)
+		case consts.Offline:
+			message = fmt.Sprintf("喵喵喵~, 节点 [%s - %s](%s) 掉线了~", node.Name, node.Location, node.Host)
 			break
 		}
 	}

@@ -24,7 +24,7 @@ type AuthResult struct {
 
 var logger util.Logger
 
-// parseParam Parse user parameters.
+// parseParam parse user parameters.
 func parseParam() {
 	args := os.Args
 	for _, arg := range args {
@@ -38,12 +38,12 @@ func parseParam() {
 			token = arg[8:]
 		}
 	}
-	if len(name) == 0 || len(server) == 0 || len(port) == 0 || len(token) == 0 {
-		logger.LogWithExit("The argument you provided does not match [--name,--server,--port,--token].")
+	if len(server) == 0 || len(token) == 0 {
+		logger.LogWithExit("The argument you provided does not match [--server,--token].")
 	}
 }
 
-// RequestAuth Authenticate the client and return the connection.
+// RequestAuth authenticate the client and return the connection.
 func RequestAuth() *AuthResult {
 	parseParam()
 
@@ -56,20 +56,20 @@ func RequestAuth() *AuthResult {
 	bytes, _ := json.Marshal(token)
 	_, err = conn.Write(bytes)
 	if err != nil {
-		logger.LogWithError(err, "Authentication failed!")
+		logger.OnlyLog("Failed to send authentication request.")
 		return &AuthResult{Ok: false}
 	}
 	var buf = make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil {
-		logger.LogWithError(err, "Authentication failed!")
+		logger.LogWithError(err, "Authentication failed.")
 		return &AuthResult{Ok: false}
 	}
 	var resModel model.AuthResponse
 	_ = json.Unmarshal(buf[:n], &resModel)
 	// The token is incorrect.
 	if resModel.Code == -1 {
-		logger.LogWithExit("Client authentication failed, token is incorrect!")
+		logger.LogWithExit("Authentication failed, incorrect token.")
 	}
 	logger.OnlyLog("Server connection successful!")
 	return &AuthResult{
