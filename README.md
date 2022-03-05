@@ -1,6 +1,6 @@
 ## 👻Introduce
 
-[SSProbe](https://github.com/realzolo/ssprobe) is a server status monitor, it provides a visual interface, real-time for you to display server status, such as CPU usage, memory usage, network speed and so on.  
+[SSProbe](https://github.com/realzolo/ssprobe) is a server status monitor, it provides a visual interface, real-time for you to display server status, such as CPU usage, memory usage, network speed and so on.  [简体中文](https://github.com/realzolo/ssprobe/blob/master/README_CN.md)
 
 ![](https://image.onezol.com/img/ssprobe.png)
 
