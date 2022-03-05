@@ -1,7 +1,7 @@
 <div align="center">
   <h3><a href="https://status.onezol.com">SSProbe</a></h3>
   <p><em>A server status monitoring program, powered by Golang.</em></p>
-  <a href=""><img src="https://img.shields.io/badge/简体中文-000000?style=flat&logo=Academia&logoColor=%23FFFFFF" alt="Language" /><a/>
+  <a href="https://github.com/realzolo/ssprobe/blob/master/README_CN.md"><img src="https://img.shields.io/badge/简体中文-000000?style=flat&logo=Academia&logoColor=%23FFFFFF" alt="Language" /><a/>
   <img src="https://img.shields.io/badge/Golang-black?style=flat&logo=Go&logoColor=white" alt="Golang" />
   <img src="https://img.shields.io/badge/React.js-black?style=flat&logo=React&logoColor=white" alt="React.js" />
   <img src="https://img.shields.io/github/last-commit/realzolo/ssprobe?&label=Last%20commit&color=CF2B5B&labelColor=black&logo=github" alt="commit"/>
