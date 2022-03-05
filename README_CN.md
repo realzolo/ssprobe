@@ -1,57 +1,76 @@
 ## 👻简介
 
-[SSProbe](https://github.com/realzolo/ssprobe) 是一个服务器监控程序，它提供了一个可视化的界面，实时显示你的服务器状态，如CPU占用率、内存使用情况和网络速度等。
+[SSProbe](https://github.com/realzolo/ssprobe) 是一个服务器监控程序，它提供了一个可视化的界面，实时为你显示服务器状态，如CPU占用率、内存使用情况和网络速度等。
 
-![](https://image.onezol.com/img/ssprobe.jpg)
+![](https://image.onezol.com/img/ssprobe.png)
 
 ## 🎉下载和使用
-
-### 服务端
-
-在[release页面](https://github.com/realzolo/ssprobe/releases)找到对应系统的**服务端版本**并下载到你的服务器上，你可以在`config.yaml`文件中配置你的端口和Token令牌。
-
+在 [release页面](https://github.com/realzolo/ssprobe/releases) 找到对应系统版本的压缩包,解压之后将`ssprobe-server`和`config.yaml`
+这两个文件上传到你的服务器上,将`ssprobe-client`上传到你需要监控的机器上。
+### 1. 配置
+`config.yaml`中包含了你的一些配置,配置说明如下:
 ```yaml
-# config.yaml
-token: 123456   # 用于验证你的客户端
-port:	
-  server: 3384   # 服务器端口
-  web-api: 9000  # Http请求端口
+server:
+  token: 123456   # 服务器令牌,用于客户端(被监控的机器)连接服务器时验证身份
+  port: 3384      # 服务器监听的端口
+  websocketPort: 9000    # 如果没有前后端分离部署,请保持此项默认
+
+web:
+  enable: true    # 启用web服务。如果你需要前后端分离部署,你可以将此项设置为false
+  title: Zolo's Server Monitor  # 监控页面的网站标题
+
+notifier:
+  telegram:
+    enable: true        # 启用Telegram Bot发送通知
+    useEmbed: false     # 使用本程序内部的TelegramBot接口,即使用自己创建的Bot。
+    language: chinese   # Bot通知的语言
+    botToken: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Bot token. 当useEmbed为true时,此项有效。
+    userId: 1953745499  # Telegram 用户ID
 ```
+> **`useEmbed`** 是否使用本程序内部的TelegramBot接口,即使用自己创建的Bot。
+> 
+> 若你将此服务端程序部署在中国大陆的服务器上,由于网络原因则无法使用Bot发送通知。当useEmbed设置为false时,你可以指定一个**userId**,使用已经搭建好的Bot。
+#### 🤷‍♂️如何创建Bot并获取BotToken?
+Telegram搜索 `BotFather`, 向他发送`/newbot `,根据提示创建Bot。创建完毕后向他发送 `/mybots` 选择你的Bot,然后获取Token。
 
-确保两个文件在同一个目录中，然后执行程序。  
+#### 🤷‍♀️如何获取UserID?
+Telegram搜索 `SSProbe Bot`, 向他发送`/me`即可获得你的UserID.
 
+![](https://image.onezol.com/img/tguserid.png)
+
+### 2. 启动程序
+(1) 服务端程序
+
+确保`config.yaml`和`ssprobe-server`处于同一目录下,使用如下命令启动你的服务端程序:
 ```bash
-chmod a+x server
-./server
-
-# 或者后台运行
-nohup ./server &
+chmod a+x ./ssprobe-server && ./ssprobe-server
 ```
+此时, 若你启用了TelegramBot并且设置了 `useEmbed: true`, 则会在控制台日志中看到如下内容:
 
+![](https://image.onezol.com/img/ssprobe-console-cn.png)
+将方框中的Token值发送给你的Telegram Bot, Bot验证成功之后就会为你推送通知了。
 
+![](https://image.onezol.com/img/bot-bind-cn.png)
 
-### 客户端
+打开 `http://ip:10240` 就可以看到监控页面了。
 
-在[release页面](https://github.com/realzolo/ssprobe/releases)找到对应系统的**客户端版本**并下载到你的服务器上，并使用如下命令启动你的客户端程序：
-
+(2) 客户端程序
 ```bash
-chmod a+x ./client
-./client --name=客户端名称 --server=服务器地址 --port=服务器端口 --token=你的Token令牌
-
-# 或者后台运行
-nohup ./client --name=客户端名称 --server=服务器地址 --port=服务器端口 --token=你的Token令牌 &
+chmod a+x ./ssprobe-client
+./ssprobe-client --name=客户端名称 --server=服务器地址 --token=你的Token令牌
 ```
+> 如果你修改了服务的监听端口,则还需要额外指定一个`--port`参数(默认服务器端口为: 3384)
 
-例如: `./client --name=ClientA --server=110.42.133.216 --port=3384 --token=123456`
+例如: `./ssprobe-client --name=ClientA --server=110.42.133.216 --port=3384 --token=123456`
 
-### Web端
+命令执行完毕后,就可以在监控页面看到监控数据了。
 
-将[web目录](https://github.com/realzolo/ssprobe/tree/master/web)中的文件部署到你的HTTP服务器或其他静态网站托管平台。你可以在[config.json](https://github.com/realzolo/ssprobe/blob/master/web/config.json)中更改你的配置信息。 部署完成后，就可以进入监控页面了。  
-
+### 3. 前后端分离部署(可选)
+如果你需要将前后端分离部署,你需要将 [`server/static/`](https://github.com/realzolo/ssprobe/tree/master/server/static) 目录下的文件下载下来,并且在`index.html所在目录`创建一个`config.json`文件内容如下:
 ```json
 {
-    "API": "ws://服务器地址:服务器端口/json",   
-    "SITE_TITLE":"这是网站标题" 
+  "SITE_TITLE":"网站标题",
+  "WEBSOCKET_URL": "ws://服务器地址:9000(Websocket端口)"
 }
 ```
 

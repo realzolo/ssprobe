@@ -1,57 +1,76 @@
 ## 👻Introduce
 
-[SSProbe](https://github.com/realzolo/ssprobe) is a server status monitor that provides a visual interface that displays your server status in real time, such as CPU usage, memory usage, network speed, etc.  **[中文版](https://github.com/realzolo/ssprobe/blob/master/README_CN.md)**
+[SSProbe](https://github.com/realzolo/ssprobe) is a server status monitor, it provides a visual interface, real-time for you to display server status, such as CPU usage, memory usage, network speed and so on.  
 
-![](https://image.onezol.com/img/ssprobe.jpg)
+![](https://image.onezol.com/img/ssprobe.png)
 
 ## 🎉Installation & Usage
+On the [release](https://github.com/realzolo/ssprobe/releases) page, find the zip file corresponding to the system version, unzip it and upload the files `ssprobe-server` and `config.yaml` to your server, upload `ssprobe-client` to the machine you need to monitor.
 
-### Server
-
-In the [release page](https://github.com/realzolo/ssprobe/releases) to find the **server version** of the corresponding system and download to your server, You can configure your port and token in the `config.yaml` file.  
-
+### 1. Configuration
+The `config.yaml` contains some of your configuration, which is described below.
 ```yaml
-# config.yaml
-token: 123456   # Used to authenticate identity.
-port:	
-  server: 3384   # Server port
-  web-api: 9000  # Http request port
+server:
+  token: 123456   # Used to verify the identity of the client (the monitored machine) when connecting to the server.
+  port: 3384      # The port the server is listening on.
+  websocketPort: 9000    # If you do not have a separate front-end and back-end deployment, please leave this as default.
+
+web:
+  enable: true    # Enable web services. If you need separate front and back-end deployment, you can set this to false.
+  title: Zolo's Server Monitor  # The page's site title.
+
+notifier:
+  telegram:
+    enable: true        # Enable Telegram Bot to send notifications.
+    useEmbed: false     # Use the Telegram Bot interface inside this program (use the Bot you created).
+    language: chinese   # Language of Bot notifications
+    botToken: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Bot token.(This is valid when useEmbed is true)
+    userId: 1953745499  # Telegram's user ID
 ```
+> **`useEmbed`**: Use the Telegram Bot interface inside this program (use the Bot you created).。
+> If you deploy this server-side application on a server in mainland China, you will not be able to use Bot to send notifications due to network reasons.
+> When `useEmbed` is set to `false`, you can specify a `userId` and use the already built Bot.
+#### 🤷‍♂️How to create a Bot and get a BotToken?
+Use Telegram to search for `BotFather`, send him `/newbot`, follow the prompts to create a bot, then send him `/mybots` to select your bot and get the token.
 
-Make sure both files are in the same directory, then execute the program.
+#### 🤷‍♀️How to get the UserID?
+Use Telegram to search for `SSProbe Bot`, Send `/me` to him to get your UserID.
 
+![](https://image.onezol.com/img/tguserid.png)
+
+### 2. Start-up program
+(1) Server program
+
+Make sure that `config.yaml` and `ssprobe-server` are in the same directory, and start your program with the following command:
 ```bash
-chmod a+x server
-./server
-
-# Or run in the background
-nohup ./server &
+chmod a+x ./ssprobe-server && ./ssprobe-server
 ```
+At this moment, if you have enabled TelegramBot and set `useEmbed: true`, you will see the following in the console log:
 
+![](https://image.onezol.com/img/ssprobe-console.png)
 
+Send the token to your Telegram Bot, and the Bot will push you notifications once it has verified it.
 
-### Client
+![](https://image.onezol.com/img/bot-bind-en.png)
 
-In the [release page](https://github.com/realzolo/ssprobe/releases) to find the corresponding system of client version and download to your server, and use the following command to start the client program: 
+Open `http://ip:10240` and you will see the monitoring page.
 
+(2) Client program
 ```bash
-chmod a+x ./client
-./client --name=CLIENT_NAME --server=SERVER_ADDRESS --port=SERVER_PORT --token=YOUR_TOKEN
-
-# Or run in the background
-nohup ./client --name=CLIENT_NAME --server=SERVER_ADDRESS --port=SERVER_PORT --token=YOUR_TOKEN &
+chmod a+x ./ssprobe-client
+./client --name=ClientName --server=ServerAddress --token=YourServerToken
 ```
+> If you modify the server's listening port, you need to specify an additional `--port' parameter.(the default server port is: 3384)
 
-For example: `./client --name=ClientA --server=110.42.133.216 --port=3384 --token=123456`
+Such as `./ssprobe-client --name=ClientA --server=110.42.133.216 --port=3384 --token=123456`
 
-### Web
+Once the command is executed, you can see the data on the monitoring page.
 
-Will [web directory](https://github.com/realzolo/ssprobe/tree/master/web) in the file deployed to your HTTP server or other static web site hosting platform. You can in the [config.json](https://github.com/realzolo/ssprobe/blob/master/web/config.json) to change your configuration information. After the deployment is complete, you can go to the monitoring page.  
-
+### 3. Separate front and back-end deployment (optional)
+If you need to deploy the front-end and back-end separately, you need to download the files in the [`server/static/`](https://github.com/realzolo/ssprobe/tree/master/server/static) directory and create a `config.json` file in the `index.html directory` with the following contents:
 ```json
 {
-    "API": "ws://server_address:port/json",   
-    "SITE_TITLE":"your_site_title" 
+  "SITE_TITLE":"site title",
+  "WEBSOCKET_URL": "ws://ServerAddress:9000(WebsocketPort)"
 }
 ```
-
