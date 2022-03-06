@@ -9,9 +9,8 @@ web:
 
 notifier:
   telegram:
-    enable: true
-    # useEmbed: Use the built-in Bot for this application. If you are in mainland China, enabling this option will cause you to be unable to send and receive notifications due to network failure.
-    useEmbed: false
-    language: chinese
-    botToken: 5185378646:AAH8tODlas2eq-WwAVHc5_g3_mh6jDCd-o0
-    userId: 1953745499
+    enable: true         # Whether to enable Telegram Bot to send notifications
+    useEmbed: true       # Whether to use the Bot created by yourself
+    language: chinese    # [Chinese] or [English](default)
+    botToken: 5185378646:AAH8tODlas2eq-WwAVHc5_g3_mh6jDCd-o0  # Telegram Bot token
+    userId: 1953745499   # Telegram User ID. (You can get it by sending "/me" to Telegram Bot "@ssprobe_bot")

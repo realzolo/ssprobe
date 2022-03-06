@@ -16,7 +16,7 @@ func SentToTelegramByHttp(tg *model.Telegram, node *model.Node, actionType int64
 	}
 	bytes, _ := json.Marshal(node)
 	_, err := http.Get(TgBotApi + "?" +
-		"id=" + tg.UserId +
+		"id=" + strconv.FormatInt(tg.UserId, 10) +
 		"&content=" + string(bytes) +
 		"&language=" + strings.ToUpper(tg.Language) +
 		"&action=" + strconv.FormatInt(actionType, 10))

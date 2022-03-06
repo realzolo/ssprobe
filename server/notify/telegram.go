@@ -3,7 +3,6 @@ package notify
 import (
 	"fmt"
 	telegram "gopkg.in/telebot.v3"
-	"math/rand"
 	"ssprobe-common/util"
 	"ssprobe-server/consts"
 	"ssprobe-server/model"
@@ -11,10 +10,9 @@ import (
 	"time"
 )
 
-var logger = util.Logger{}
 var (
-	bot      *telegram.Bot
-	receiver *telegram.User
+	logger = util.Logger{}
+	bot    *telegram.Bot
 )
 
 func InitTelegramBot(tg model.Telegram) {
@@ -27,27 +25,21 @@ func InitTelegramBot(tg model.Telegram) {
 	}
 	_bot, err := telegram.NewBot(pref)
 	if err != nil {
-		logger.OnlyLog("Bot token does not exist, bot initialization failed.")
+		logger.OnlyLog("Telegram Bot initialization failed, the token does not exist.")
 		return
 	}
-	var (
-		token   = randString(32)
-		hasInit = false
-	)
-	logger.LogWithFormat("Your Telegram Bot token is %v", token)
+	logger.OnlyLog("Telegram Bot started successfully!")
 	_bot.Handle(telegram.OnText, func(c telegram.Context) error {
-		if hasInit || token != c.Text() {
+		if c.Text() != "/start" {
 			return c.Delete()
 		}
-		hasInit = true
-		bot = _bot
-		receiver = c.Sender()
-		if strings.ToUpper(tg.Language) == consts.Chinese {
-			return c.Send("绑定成功,你将会收到来自此机器人的通知!")
-		}
-		return c.Send("Bind successfully, you will receive notification from this robot!")
+		return nil
 	})
-
+	_bot.Handle("/me", func(c telegram.Context) error {
+		msg := fmt.Sprintf("Hello %s\nUser ID: %d\nUsername: %s\n", c.Sender().FirstName, c.Sender().ID, c.Sender().Username)
+		return c.Send(msg)
+	})
+	bot = _bot
 	_bot.Start()
 }
 
@@ -64,16 +56,16 @@ func SendToTelegram(tg *model.Telegram, node *model.Node, actionType int64) {
 			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) is online!", node.Name, node.Location, node.Host)
 			break
 		case consts.Recover:
-			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) has been recovered.", node.Name, node.Location, node.Host)
+			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) is recovered.", node.Name, node.Location, node.Host)
 			break
 		case consts.Offline:
-			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) failed and went offline.", node.Name, node.Location, node.Host)
+			message = fmt.Sprintf("Meow ~, The node [%s - %s](%s) is offline.", node.Name, node.Location, node.Host)
 			break
 		}
 	case consts.Chinese:
 		switch actionType {
 		case consts.Online:
-			message = fmt.Sprintf("喵喵喵~, 您的机器 [%s - %s](%s) 已上线,状态正常!", node.Name, node.Location, node.Host)
+			message = fmt.Sprintf("喵喵喵~, 您的机器 [%s - %s](%s) 已上线~", node.Name, node.Location, node.Host)
 			break
 		case consts.Recover:
 			message = fmt.Sprintf("喵喵喵~, 节点 [%s - %s](%s) 恢复了~", node.Name, node.Location, node.Host)
@@ -83,16 +75,6 @@ func SendToTelegram(tg *model.Telegram, node *model.Node, actionType int64) {
 			break
 		}
 	}
-	_, err := bot.Send(receiver, message)
+	_, err := bot.Send(&telegram.User{ID: tg.UserId}, message)
 	logger.LogWithError(err, "")
-}
-
-func randString(len int) string {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	bytes := make([]byte, len)
-	for i := 0; i < len; i++ {
-		b := r.Intn(26) + 65
-		bytes[i] = byte(b)
-	}
-	return string(bytes)
 }
