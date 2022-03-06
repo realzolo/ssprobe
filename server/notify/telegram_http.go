@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const TgBotApi = "http://173.82.206.185/"
+const TgBotApi = "http://tgbot.onezol.com"
 
 func SentToTelegramByHttp(tg *model.Telegram, node *model.Node, actionType int64) {
 	if !tg.Enable || tg.UseEmbed {
