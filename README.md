@@ -1,19 +1,20 @@
 <div align="center">
-  <h3><a href="https://status.onezol.com">SSProbe</a></h3>
+  <h1><a href="https://status.onezol.com">SSProbe</a></h1>
   <p><em>A server status monitoring program, powered by Golang.</em></p>
   <a href="https://github.com/realzolo/ssprobe/blob/master/README_CN.md"><img src="https://img.shields.io/badge/简体中文-000000?style=flat&logo=Academia&logoColor=%23FFFFFF" alt="Language" /><a/>
   <img src="https://img.shields.io/badge/Golang-black?style=flat&logo=Go&logoColor=white" alt="Golang" />
   <img src="https://img.shields.io/badge/React.js-black?style=flat&logo=React&logoColor=white" alt="React.js" />
   <img src="https://img.shields.io/github/last-commit/realzolo/ssprobe?&label=Last%20commit&color=CF2B5B&labelColor=black&logo=github" alt="commit"/>
   <img src="https://img.shields.io/github/stars/realzolo/ssprobe?color=%2300979D&label=Starts&labelColor=black&logo=Apache%20Spark&logoColor=%23FFFFFF" alt="stars"/>
+<br/><br/>
 </div>
 
 
-
-## 👻Introduce
+## 🏅Introduce
 
 [SSProbe](https://github.com/realzolo/ssprobe) is a server status monitor, it provides a visual interface, real-time for you to display server status, such as CPU usage, memory usage, network speed and so on.  
 
+* Low CPU and memory usage.📉
 * The client is very easy to deploy.🚀
 * Super fast ⚡ and responsive 💦
 * Takes less than 10 minutes to setup ⏱️
@@ -46,27 +47,28 @@ web:
 notifier:
   telegram:
     enable: true        # Enable Telegram Bot to send notifications.
-    useEmbed: false     # Use the Telegram Bot interface inside this program (use the Bot you created).
+    useEmbed: false     # Whether to use the Bot created by yourself.
     language: chinese   # Language of Bot notifications
     botToken: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Bot token.(This is valid when useEmbed is true)
     userId: 1953745499  # Telegram's user ID
 ```
 
-> **`useEmbed`**: Use the Telegram Bot interface inside this program (use the Bot you created).。
+> ⚠️ **`useEmbed`**: Do you use a Bot you created?
+> 
 > If you deploy this server-side application on a server in mainland China, you will not be able to use Bot to send notifications due to network reasons.
-> When `useEmbed` is set to `false`, you can specify a `userId` and use the already built Bot.
+> When `useEmbed` is set to `false`, you can specify a UserID, using the Bot we've already created.
 
-#### 🤷‍♂️How to create a Bot and get a BotToken?
+#### 🤷‍♂️ How to create a Bot and get a BotToken?
 
-Use Telegram to search for `BotFather`, send him `/newbot`, follow the prompts to create a bot, then send him `/mybots` to select your bot and get the token.
+Use Telegram to search for `@BotFather`, send him `/newbot`,follow the steps to complete the creation, then send him `/mybots` to select your bot and get the token.
 
-#### 🤷‍♀️How to get the UserID?
+#### 🤷‍♀️ How to get the UserID?
 
-Use Telegram to search for `SSProbe Bot`, Send `/me` to him to get your UserID.
+Use Telegram to search for `@ssprobe_bot`, Send `/me` to him to get your UserID. (`@ssprobe_bot` is the bot we have created. If you have enabled the Telegram bot and set `useEmbed: false`, then subsequent notifications will be sent to you via this bot.)
 
 ### 2. Start-up program
 
-(1) Server program
+(1) 🖥️ Server-side program
 
 Make sure that `config.yaml` and `ssprobe-server` are in the same directory, and start your program with the following command:
 
@@ -74,24 +76,16 @@ Make sure that `config.yaml` and `ssprobe-server` are in the same directory, and
 chmod a+x ./ssprobe-server && ./ssprobe-server
 ```
 
-At this moment，Open `http://ip:10240` and you will see the monitoring page.
+At this moment，Open `http://ip:10240` and you will see the monitoring page if you set `web.enable: true`
 
-If you have enabled TelegramBot and set `useEmbed: true`, you will see the following in the console log:
-
-![](https://image.onezol.com/img/ssprobe-console.png)
-
-Send the token to your Telegram Bot, and the Bot will push you notifications once it has verified it.
-
-![](https://image.onezol.com/img/bot-bind-en.png)
-
-(2) Client program
+(2) 💻 Client program
 
 ```bash
 chmod a+x ./ssprobe-client
 ./client --name=ClientName --server=ServerAddress --token=YourServerToken
 ```
 
-> If you modify the server's listening port, you need to specify an additional `--port' parameter.(the default server port is: 3384)
+> ⚠️ If you modify the server's listening port, you need to specify an additional `--port' parameter.(the default server port is: 3384)
 
 Such as `./ssprobe-client --name=ClientA --server=110.42.133.216 --port=3384 --token=123456`
 

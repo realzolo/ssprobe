@@ -10,7 +10,7 @@ web:
 notifier:
   telegram:
     enable: true         # Whether to enable Telegram Bot to send notifications
-    useEmbed: true       # Whether to use the Bot created by yourself
+    useEmbed: false       # Whether to use the Bot created by yourself
     language: chinese    # [Chinese] or [English](default)
-    botToken: 5185378646:AAH8tODlas2eq-WwAVHc5_g3_mh6jDCd-o0  # Telegram Bot token
+    botToken: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    # Telegram Bot token
     userId: 1953745499   # Telegram User ID. (You can get it by sending "/me" to Telegram Bot "@ssprobe_bot")
