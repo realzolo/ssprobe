@@ -1,3 +1,14 @@
+<div align="center">
+  <h3><a href="https://status.onezol.com">SSProbe</a></h3>
+  <p><em>一个由Golang编写的服务器状态监控程序..</em></p>
+  <a href="https://github.com/realzolo/ssprobe/blob/master/README_CN.md"><img src="https://img.shields.io/badge/简体中文-000000?style=flat&logo=Academia&logoColor=%23FFFFFF" alt="Language" /><a/>
+  <img src="https://img.shields.io/badge/Golang-black?style=flat&logo=Go&logoColor=white" alt="Golang" />
+  <img src="https://img.shields.io/badge/React.js-black?style=flat&logo=React&logoColor=white" alt="React.js" />
+  <img src="https://img.shields.io/github/last-commit/realzolo/ssprobe?&label=Last%20commit&color=CF2B5B&labelColor=black&logo=github" alt="commit"/>
+  <img src="https://img.shields.io/github/stars/realzolo/ssprobe?color=%2300979D&label=Starts&labelColor=black&logo=Apache%20Spark&logoColor=%23FFFFFF" alt="stars"/>
+</div>
+<br/>
+  
 ## 👻简介
 
 [SSProbe](https://github.com/realzolo/ssprobe) 是一个服务器监控程序，它提供了一个可视化的界面，实时为你显示服务器状态，如CPU占用率、内存使用情况和网络速度等。
@@ -29,14 +40,12 @@ notifier:
 ```
 > **`useEmbed`** 是否使用本程序内部的TelegramBot接口,即使用自己创建的Bot。
 > 
-> 若你将此服务端程序部署在中国大陆的服务器上,由于网络原因则无法使用Bot发送通知。当useEmbed设置为false时,你可以指定一个**userId**,使用已经搭建好的Bot。
+> 若你将此服务端程序部署在中国大陆的服务器上,由于网络原因则无法使用Bot发送通知。当useEmbed设置为false时,你可以指定一个**userId**,使用我已经搭建好的Bot。
 #### 🤷‍♂️如何创建Bot并获取BotToken?
 Telegram搜索 `BotFather`, 向他发送`/newbot `,根据提示创建Bot。创建完毕后向他发送 `/mybots` 选择你的Bot,然后获取Token。
 
 #### 🤷‍♀️如何获取UserID?
 Telegram搜索 `SSProbe Bot`, 向他发送`/me`即可获得你的UserID.
-
-![](https://image.onezol.com/img/tguserid.png)
 
 ### 2. 启动程序
 (1) 服务端程序
@@ -45,14 +54,15 @@ Telegram搜索 `SSProbe Bot`, 向他发送`/me`即可获得你的UserID.
 ```bash
 chmod a+x ./ssprobe-server && ./ssprobe-server
 ```
-此时, 若你启用了TelegramBot并且设置了 `useEmbed: true`, 则会在控制台日志中看到如下内容:
+此时,打开 `http://ip:10240` 就可以看到监控页面了。 
+若你启用了TelegramBot,并且设置了 `useEmbed: true`, 则会在控制台日志中看到如下内容:
 
 ![](https://image.onezol.com/img/ssprobe-console-cn.png)
-将方框中的Token值发送给你的Telegram Bot, Bot验证成功之后就会为你推送通知了。
+  
+将方框中的Token值发送给你的Telegram Bot, 验证成功之后就会为你推送通知了。
 
 ![](https://image.onezol.com/img/bot-bind-cn.png)
 
-打开 `http://ip:10240` 就可以看到监控页面了。
 
 (2) 客户端程序
 ```bash
