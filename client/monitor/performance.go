@@ -7,15 +7,18 @@ import (
 	"github.com/shirou/gopsutil/v3/load"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // GetCPU Get CPU information.
 // Return the number and percentage of CPU usage.
 func GetCPU() (int, uint64) {
 	counts, _ := cpu.Counts(false)
-	percent, _ := cpu.Percent(time.Second, false)
-	return counts, uint64(percent[0])
+	percents, _ := cpu.Percent(0, true)
+	var percent = 0.0
+	for _, p := range percents {
+		percent += p
+	}
+	return counts, uint64(percent)
 }
 
 // GetLoad Get CPU load information.
