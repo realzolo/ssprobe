@@ -25,16 +25,18 @@ func init() {
 			WebsocketPort: c.SetOrDefault(c.Server.WebsocketPort, consts.WebsocketPort).(int),
 		},
 		Web: model.Web{
-			Enable: c.Web.Enable,
-			Title:  c.SetOrDefault(c.Web.Title, consts.SiteTitle).(string),
+			Enable:   c.Web.Enable,
+			Title:    c.SetOrDefault(c.Web.Title, consts.SiteTitle).(string),
+			Github:   c.SetOrDefault(c.Web.Github, consts.Github).(string),
+			Telegram: c.SetOrDefault(c.Web.Telegram, consts.Telegram).(string),
 		},
 		Notifier: model.Notifier{
 			Telegram: model.Telegram{
-				Enable:   c.Telegram.Enable,
-				UseEmbed: c.Telegram.UseEmbed,
-				Language: c.SetOrDefault(c.Telegram.Language, consts.English).(string),
-				BotToken: c.Telegram.BotToken,
-				UserId:   c.Telegram.UserId,
+				Enable:   c.Notifier.Telegram.Enable,
+				UseEmbed: c.Notifier.Telegram.UseEmbed,
+				Language: c.SetOrDefault(c.Notifier.Telegram.Language, consts.English).(string),
+				BotToken: c.Notifier.Telegram.BotToken,
+				UserId:   c.Notifier.Telegram.UserId,
 			},
 		},
 	}
@@ -43,6 +45,6 @@ func init() {
 func main() {
 	go service.StartWebService(conf)
 	go service.StartWebsocketService(conf)
-	go notify.InitTelegramBot(conf.Telegram)
+	go notify.InitTelegramBot(conf.Notifier.Telegram)
 	service.StartSocketService(conf)
 }

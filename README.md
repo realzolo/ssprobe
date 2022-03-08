@@ -24,7 +24,7 @@
 
 Live demo at [Zolo's SSProbe](https://status.onezol.com/).
 
-![](https://image.onezol.com/img/ssprobe.png)
+![](https://image.onezol.com/img/ssprobe-en.png)
 
 ## 🎉Installation & Usage
 
@@ -42,7 +42,9 @@ server:
 
 web:
   enable: true    # Enable web services. If you need separate front and back-end deployment, you can set this to false.
-  title: Zolo's Server Monitor  # The page's site title.
+  title: Zolo's Probe  # The page's site title.
+# github: your_github_url
+# telegram: your_telegram_url
 
 notifier:
   telegram:
@@ -97,7 +99,9 @@ If you need to deploy the front-end and back-end separately, you need to downloa
 
 ```json
 {
-  "SITE_TITLE":"site title",
-  "WEBSOCKET_URL": "ws://ServerAddress:9000(WebsocketPort)"
+    "site_title":"your_site_title",
+    "websocket_url": "ws://server_address:9000(WebsocketPort)",
+    "github": "your_github_url",
+    "telegram": "your_telegram_url"
 }
 ```

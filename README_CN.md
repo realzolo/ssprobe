@@ -24,7 +24,7 @@
 
 Live demo at [Zolo's SSProbe](https://status.onezol.com/).
 
-![](https://image.onezol.com/img/ssprobe.png)
+![](https://image.onezol.com/img/ssprobe-cn.png)
 
 ## 🎉下载和使用
 
@@ -42,7 +42,9 @@ server:
 
 web:
   enable: true    # 启用web服务。如果你需要前后端分离部署,你可以将此项设置为false
-  title: Zolo's Server Monitor  # 监控页面的网站标题
+  title: Zolo's Probe  # 监控页面的网站标题
+# github: 你的github地址(选填)
+# telegram: 你的telegram地址(选填)
 
 notifier:
   telegram:
@@ -99,8 +101,10 @@ chmod a+x ./ssprobe-client
 
 ```json
 {
-  "SITE_TITLE":"网站标题",
-  "WEBSOCKET_URL": "ws://服务器地址:9000(Websocket端口)"
+    "site_title":"网站标题",
+    "websocket_url": "ws://服务器地址:9000(Websocket端口)",
+    "github": "你的GitHub地址(选填)",
+    "telegram": "你的Telegram地址(选填)"
 }
 ```
 

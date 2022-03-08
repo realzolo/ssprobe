@@ -7,8 +7,10 @@ type Server struct {
 }
 
 type Web struct {
-	Enable bool   `yaml:"enable"`
-	Title  string `yaml:"title"`
+	Enable   bool   `yaml:"enable"`
+	Title    string `yaml:"title"`
+	Github   string `yaml:"github"`
+	Telegram string `yaml:"telegram"`
 }
 
 type Notifier struct {

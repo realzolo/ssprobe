@@ -5,7 +5,9 @@ server:
 
 web:
   enable: true
-  title: Zolo's Server Monitor
+  title: Zolo's Probe
+#  github: https://github.com/realzolo
+#  telegram: https://t.me/realzolo
 
 notifier:
   telegram:

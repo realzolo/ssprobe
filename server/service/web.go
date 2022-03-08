@@ -25,8 +25,10 @@ func StartWebService(conf *util.Conf) {
 	})
 	router.GET("/ws", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"title":          conf.Web.Title,
+			"site_title":     conf.Web.Title,
 			"websocket_port": conf.Server.WebsocketPort,
+			"github":         conf.Web.Github,
+			"telegram":       conf.Web.Telegram,
 		})
 	})
 	err := router.Run(":10240")
