@@ -37,14 +37,12 @@ Live demo at [Zolo's SSProbe](https://status.onezol.com/).
 ```yaml
 server:
   token: 123456   # 服务器令牌,用于客户端(被监控的机器)连接服务器时验证身份
-  port: 3384      # 服务器监听的端口
-  websocketPort: 9000    # 如果没有前后端分离部署,请保持此项默认
+# port: 3384      # 服务器监听的端口(默认为3384)
 
 web:
-  enable: true    # 启用web服务。如果你需要前后端分离部署,你可以将此项设置为false
   title: Zolo's Probe  # 监控页面的网站标题
-# github: 你的github地址(选填)
-# telegram: 你的telegram地址(选填)
+  github: ""  	# 你的github地址(选填)
+  telegram: ""  # 你的telegram地址(选填)
 
 notifier:
   telegram:

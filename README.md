@@ -38,13 +38,11 @@ The `config.yaml` contains some of your configuration, which is described below.
 server:
   token: 123456   # Used to verify the identity of the client (the monitored machine) when connecting to the server.
   port: 3384      # The port the server is listening on.
-  websocketPort: 9000    # If you do not have a separate front-end and back-end deployment, please leave this as default.
 
 web:
-  enable: true    # Enable web services. If you need separate front and back-end deployment, you can set this to false.
   title: Zolo's Probe  # The page's site title.
-# github: your_github_url
-# telegram: your_telegram_url
+  github: ""   # Your github url(optional)
+  telegram: "" # Your telegram url(optional)
 
 notifier:
   telegram:
