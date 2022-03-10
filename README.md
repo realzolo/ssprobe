@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Golang-black?style=flat&logo=Go&logoColor=white" alt="Golang" />
   <img src="https://img.shields.io/badge/React.js-black?style=flat&logo=React&logoColor=white" alt="React.js" />
   <img src="https://img.shields.io/github/last-commit/realzolo/ssprobe?&label=Last%20commit&color=CF2B5B&labelColor=black&logo=github" alt="commit"/>
-  <img src="https://img.shields.io/github/stars/realzolo/ssprobe?color=%2300979D&label=Starts&labelColor=black&logo=Apache%20Spark&logoColor=%23FFFFFF" alt="stars"/>
+  <img src="https://img.shields.io/github/stars/realzolo/ssprobe?color=%2300979D&label=Stars&labelColor=black&logo=Apache%20Spark&logoColor=%23FFFFFF" alt="stars"/>
 <br/><br/>
 </div>
 
