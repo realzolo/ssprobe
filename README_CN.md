@@ -95,7 +95,42 @@ chmod a+x ./ssprobe-client
 
 命令执行完毕后,就可以在监控页面看到这台机器的数据了。
 
-### 3. 前后端分离部署(可选)
+### 3. 配置Https(可选)
+
+以 `nginx` 为例，在 `nginx.conf` 中加入如下内容:
+
+```nginx
+server {
+    listen       443 ssl;
+    server_name  test.onezol.com;
+
+    ssl_certificate      /home/zolo/ssprobe/test.onezol.com_chain.crt;  # SSL证书地址
+    ssl_certificate_key  /home/zolo/ssprobe/test.onezol.com_key.key;
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers  on;
+
+    location / {
+        proxy_pass http://127.0.0.1:10240/;        # 10240是服务端程序ssprobe-server的端口
+    }
+
+    location /wss/ {      # 此处 /wss/ 不可修改                         
+        proxy_pass http://127.0.0.1:10240/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header X-real-ip $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+```
+
+
+
+### 4. 前后端分离部署(可选)
 
 如果你需要将前后端分离部署,你需要将 [`server/static/`](https://github.com/realzolo/ssprobe/tree/master/server/static) 目录下的文件下载下来,并且在`index.html所在目录`创建一个`config.json`文件内容如下:
 

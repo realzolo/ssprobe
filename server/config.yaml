@@ -1,18 +1,16 @@
 server:
   token: 123456
-  port: 3384
-  websocketPort: 9000
+# port: 3384 (default)
 
 web:
-  enable: true
   title: Zolo's Probe
-#  github: https://github.com/realzolo
-#  telegram: https://t.me/realzolo
+  github: https://github.com/realzolo
+  telegram: https://t.me/realzolo
 
 notifier:
   telegram:
     enable: true         # Whether to enable Telegram Bot to send notifications
     useEmbed: false       # Whether to use the Bot created by yourself
-    language: chinese    # [Chinese] or [English](default)
+    language: chinese    # [Chinese] or [English]
     botToken: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    # Telegram Bot token
     userId: 1953745499   # Telegram User ID. (You can get it by sending "/me" to Telegram Bot "@ssprobe_bot")

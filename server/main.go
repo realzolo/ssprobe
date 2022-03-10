@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"ssprobe-common/util"
 	"ssprobe-server/consts"
 	"ssprobe-server/model"
@@ -14,18 +15,19 @@ var (
 	conf   *u.Conf
 )
 
+//go:embed static/* static/css/* static/js/*
+var F embed.FS
+
 func init() {
 	var c u.Conf
 	err := c.LoadConfig()
 	logger.ErrorWithExit(err, "Configuration file parsing failed.")
 	conf = &u.Conf{
 		Server: model.Server{
-			Token:         c.SetOrDefault(c.Server.Token, consts.ServerToken).(string),
-			Port:          c.SetOrDefault(c.Server.Port, consts.ServerPort).(int),
-			WebsocketPort: c.SetOrDefault(c.Server.WebsocketPort, consts.WebsocketPort).(int),
+			Token: c.SetOrDefault(c.Server.Token, consts.ServerToken).(string),
+			Port:  c.SetOrDefault(c.Server.Port, consts.ServerPort).(int),
 		},
 		Web: model.Web{
-			Enable:   c.Web.Enable,
 			Title:    c.SetOrDefault(c.Web.Title, consts.SiteTitle).(string),
 			Github:   c.SetOrDefault(c.Web.Github, consts.Github).(string),
 			Telegram: c.SetOrDefault(c.Web.Telegram, consts.Telegram).(string),
@@ -43,8 +45,7 @@ func init() {
 }
 
 func main() {
-	go service.StartWebService(conf)
-	go service.StartWebsocketService(conf)
+	go service.StartWebService(conf, F)
 	go notify.InitTelegramBot(conf.Notifier.Telegram)
 	service.StartSocketService(conf)
 }

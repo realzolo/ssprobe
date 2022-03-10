@@ -84,7 +84,7 @@ At this moment，Open `http://ip:10240` and you will see the monitoring page if 
 
 ```bash
 chmod a+x ./ssprobe-client
-./client --name=ClientName --server=ServerAddress --token=YourServerToken
+./ssprobe-client --name=ClientName --server=ServerAddress --token=YourServerToken
 ```
 
 > ⚠️ If you modify the server's listening port, you need to specify an additional `--port' parameter.(the default server port is: 3384)
@@ -92,6 +92,41 @@ chmod a+x ./ssprobe-client
 Such as `./ssprobe-client --name=ClientA --server=110.42.133.216 --port=3384 --token=123456`
 
 Once the command is executed, you can see the data on the monitoring page.
+
+### 3. Configure Https (optional)
+
+Take `nginx` as an example and add the following to `nginx.conf`:
+
+```nginx
+server {
+    listen       443 ssl;
+    server_name  test.onezol.com;
+
+    ssl_certificate      /home/zolo/ssprobe/test.onezol.com_chain.crt;  # SSL Certificate Address
+    ssl_certificate_key  /home/zolo/ssprobe/test.onezol.com_key.key;
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers  on;
+
+    location / {
+        proxy_pass http://127.0.0.1:10240/;        # 10240 is the port of the program ssprobe-server
+    }
+
+    location /wss/ {      # Here /wss/ cannot be modified            
+        proxy_pass http://127.0.0.1:10240/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header X-real-ip $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+```
+
+
 
 ### 3. Separate front and back-end deployment (optional)
 

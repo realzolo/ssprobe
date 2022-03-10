@@ -12,10 +12,9 @@ const (
 )
 
 const (
-	ServerToken   = "123456"
-	ServerPort    = 3384
-	WebsocketPort = 9000
-	SiteTitle     = "SSProbe"
-	Github        = "https://github.com/realzolo"
-	Telegram      = "https://t.me/realzolo"
+	ServerToken = "123456"
+	ServerPort  = 3384
+	SiteTitle   = "SSProbe"
+	Github      = "https://github.com/realzolo"
+	Telegram    = "https://t.me/realzolo"
 )
