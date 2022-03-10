@@ -135,7 +135,7 @@ server {
 ```json
 {
     "site_title":"网站标题",
-    "websocket_url": "ws://服务器地址:9000(Websocket端口)",
+    "websocket_url": "ws://服务器地址:10240",
     "github": "你的GitHub地址(选填)",
     "telegram": "你的Telegram地址(选填)"
 }

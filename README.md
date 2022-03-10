@@ -133,7 +133,7 @@ If you need to deploy the front-end and back-end separately, you need to downloa
 ```json
 {
     "site_title":"your_site_title",
-    "websocket_url": "ws://server_address:9000(WebsocketPort)",
+    "websocket_url": "ws://server_address:10240",
     "github": "your_github_url",
     "telegram": "your_telegram_url"
 }
