@@ -124,11 +124,13 @@ func PingThread(ctx context.Context, host string, mark string) {
 		case <-ctx.Done():
 			return
 		default:
+			lock.Lock()
 			// The packet is sent to the destination address. If the packet fails to be sent, packet loss occurs.
 			if _, err = conn.Write(buffer.Bytes()); err != nil {
 				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
+				lock.Unlock()
 				time.Sleep(time.Second * 2)
 				continue
 			}
@@ -140,12 +142,14 @@ func PingThread(ctx context.Context, host string, mark string) {
 				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
+				lock.Unlock()
 				time.Sleep(time.Second * 2)
 				continue
 			}
 			timeEnd := time.Now().UnixMilli()
 			timeCost := int(timeEnd - timeStart)
 			enqueue(queue, &lostPacket, timeCost, mark)
+			lock.Unlock()
 			time.Sleep(time.Second * 2)
 		}
 	}
