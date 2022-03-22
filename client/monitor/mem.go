@@ -7,19 +7,19 @@ import (
 	"strings"
 )
 
-// GetMemory Get the usage of memory
+// GetMemory get the usage of memory
 func GetMemory() (uint64, uint64, uint64) {
 	m, _ := mem.VirtualMemory()
 	return m.Total, m.Used, uint64(m.UsedPercent)
 }
 
-// GetSwapMemory Get the usage of swap memory
+// GetSwapMemory get the usage of swap memory
 func GetSwapMemory() (uint64, uint64, uint64) {
 	m, _ := mem.SwapMemory()
 	return m.Total, m.Used, uint64(m.UsedPercent)
 }
 
-// GetHDDSize Get disk capacity information.
+// GetHDDSize get disk capacity information.
 func GetHDDSize() (uint64, uint64, uint64) {
 	platform := strings.ToLower(runtime.GOOS)
 	if strings.Contains(platform, "linux") { // Linux

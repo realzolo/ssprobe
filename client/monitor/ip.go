@@ -23,7 +23,7 @@ var cache = struct {
 	cachedLocation  string
 }{}
 
-// GetIP Get the external IP address of the local host.
+// GetIP get the external IP address of the local host.
 func GetIP() (string, string, string) {
 	if cache.hasCached {
 		return cache.cachedIP, cache.cachedIPVersion, cache.cachedLocation

@@ -59,7 +59,7 @@ func GetRealtimeData(ctx context.Context) {
 	go NetSpeed(ctx)
 }
 
-// NetSpeed Monitor network speed.
+// NetSpeed monitor network speed.
 // TODO: The upload speed is not accurate, maybe this is a BUG.
 func NetSpeed(ctx context.Context) {
 	var totalRecv uint64 = 0
@@ -92,7 +92,7 @@ func NetSpeed(ctx context.Context) {
 	}
 }
 
-// PingThread Start a Ping thread to monitor the response time and packet loss rate of the destination host.
+// PingThread start a Ping thread to monitor the response time and packet loss rate of the destination host.
 func PingThread(ctx context.Context, host string, mark string) {
 	var (
 		icmp          = ICMP{8, 0, 0, 0, 0}
