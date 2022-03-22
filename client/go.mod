@@ -6,7 +6,9 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.2
 	ssprobe-common v0.0.0
 )
-replace  "ssprobe-common" => "../common"
+
+replace ssprobe-common => ../common
+
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect

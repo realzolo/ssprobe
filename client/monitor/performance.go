@@ -14,11 +14,15 @@ import (
 func GetCPU() (int, uint64) {
 	counts, _ := cpu.Counts(false)
 	percents, _ := cpu.Percent(0, true)
-	var percent = 0.0
+	var pct = 0.0
 	for _, p := range percents {
-		percent += p
+		pct += p
 	}
-	return counts, uint64(percent)
+	var percent = uint64(pct)
+	if percent > 100 {
+		percent = 100
+	}
+	return counts, percent
 }
 
 // GetLoad Get CPU load information.

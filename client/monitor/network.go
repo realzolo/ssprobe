@@ -164,9 +164,17 @@ func enqueue(queue *list.List, lostPacket *int, value int, mark string) {
 		queue.Remove(backElement)
 	}
 	queue.PushFront(value)
-	PingTime.Store(mark, queue.Front().Value)
+
 	lostPacketRateStr := fmt.Sprintf("%.f", (float64(*lostPacket)/float64(queue.Len()))*100)
 	lostPacketRate, _ := strconv.Atoi(lostPacketRateStr)
+	// TODO: sometimes lostPacketRate is inaccurate.
+	if lostPacketRate > 100 {
+		logger.OnlyLog("--------Exception--------")
+		logger.OnlyLog("lostPacket: " + (string(rune(*lostPacket))))
+		logger.OnlyLog("queue.Len: " + string(rune(queue.Len())))
+		logger.OnlyLog("----------------")
+	}
+	PingTime.Store(mark, value)
 	LostRate.Store(mark, lostPacketRate)
 }
 
