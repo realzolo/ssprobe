@@ -124,13 +124,11 @@ func PingThread(ctx context.Context, host string, mark string) {
 		case <-ctx.Done():
 			return
 		default:
-			lock.Lock()
 			// The packet is sent to the destination address. If the packet fails to be sent, packet loss occurs.
 			if _, err = conn.Write(buffer.Bytes()); err != nil {
 				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
-				lock.Unlock()
 				time.Sleep(time.Second * 2)
 				continue
 			}
@@ -142,20 +140,19 @@ func PingThread(ctx context.Context, host string, mark string) {
 				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
-				lock.Unlock()
 				time.Sleep(time.Second * 2)
 				continue
 			}
 			timeEnd := time.Now().UnixMilli()
 			timeCost := int(timeEnd - timeStart)
 			enqueue(queue, &lostPacket, timeCost, mark)
-			lock.Unlock()
 			time.Sleep(time.Second * 2)
 		}
 	}
 }
 
 func enqueue(queue *list.List, lostPacket *int, value int, mark string) {
+	lock.Lock()
 	if queue.Len() > 100 { // The maximum length of the queue is 100.
 		backElement := queue.Back()
 		if backElement.Value.(int) == 0 { // An empty packet.
@@ -167,15 +164,9 @@ func enqueue(queue *list.List, lostPacket *int, value int, mark string) {
 
 	lostPacketRateStr := fmt.Sprintf("%.f", (float64(*lostPacket)/float64(queue.Len()))*100)
 	lostPacketRate, _ := strconv.Atoi(lostPacketRateStr)
-	// TODO: sometimes lostPacketRate is inaccurate.
-	if lostPacketRate > 100 {
-		logger.OnlyLog("--------Exception--------")
-		logger.OnlyLog("lostPacket: " + (string(rune(*lostPacket))))
-		logger.OnlyLog("queue.Len: " + string(rune(queue.Len())))
-		logger.OnlyLog("----------------")
-	}
 	PingTime.Store(mark, value)
 	LostRate.Store(mark, lostPacketRate)
+	lock.Unlock()
 }
 
 func checkSum(data []byte) (rt uint16) {
