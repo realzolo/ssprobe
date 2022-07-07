@@ -9,12 +9,12 @@ import (
 	"strings"
 )
 
-var (
-	name   string = "onezol.com"
-	server string = "127.0.0.1"
-	port   string = "3384"
-	token  string = "123456"
-)
+type RequestParam struct {
+	Name   string
+	Server string
+	Port   string
+	Token  string
+}
 
 type AuthResult struct {
 	Ok   bool
@@ -25,35 +25,41 @@ type AuthResult struct {
 var logger util.Logger
 
 // parseParam parse user parameters.
-func parseParam() {
-	args := os.Args
-	for _, arg := range args {
+func parseParam() *RequestParam {
+	rp := &RequestParam{
+		Name:   "onezol.com",
+		Server: "127.0.0.1",
+		Port:   "3384",
+		Token:  "123456",
+	}
+	for _, arg := range os.Args {
 		if strings.Contains(arg, "--name=") {
-			name = arg[7:]
+			rp.Name = arg[7:]
 		} else if strings.Contains(arg, "--server=") {
-			server = arg[9:]
+			rp.Server = arg[9:]
 		} else if strings.Contains(arg, "--port=") {
-			port = arg[7:]
+			rp.Port = arg[7:]
 		} else if strings.Contains(arg, "--token=") {
-			token = arg[8:]
+			rp.Token = arg[8:]
 		}
 	}
-	if len(server) == 0 || len(token) == 0 {
+	if len(rp.Server) == 0 || len(rp.Token) == 0 {
 		logger.LogWithExit("The argument you provided does not match [--server,--token].")
 	}
+	return rp
 }
 
 // RequestAuth authenticate the client and return the connection.
 func RequestAuth() *AuthResult {
-	parseParam()
+	rp := parseParam()
 
-	conn, err := net.Dial("tcp", server+":"+port)
+	conn, err := net.Dial("tcp", rp.Server+":"+rp.Port)
 	if err != nil {
 		logger.LogWithError(err, "Failed to connect to server!")
 		return &AuthResult{Ok: false}
 	}
 	// Authentication.
-	bytes, _ := json.Marshal(token)
+	bytes, _ := json.Marshal(rp.Token)
 	_, err = conn.Write(bytes)
 	if err != nil {
 		logger.OnlyLog("Failed to send authentication request.")
@@ -65,16 +71,16 @@ func RequestAuth() *AuthResult {
 		logger.LogWithError(err, "Authentication failed.")
 		return &AuthResult{Ok: false}
 	}
-	var resModel model.AuthResponse
-	_ = json.Unmarshal(buf[:n], &resModel)
+	var res model.AuthResponse
+	_ = json.Unmarshal(buf[:n], &res)
 	// The token is incorrect.
-	if resModel.Code == -1 {
+	if res.Code == -1 {
 		logger.LogWithExit("Authentication failed, incorrect token.")
 	}
 	logger.OnlyLog("Server connection successful!")
 	return &AuthResult{
 		Ok:   true,
 		Conn: &conn,
-		Name: name,
+		Name: rp.Name,
 	}
 }

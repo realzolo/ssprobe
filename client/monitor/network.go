@@ -85,9 +85,8 @@ func NetSpeed(ctx context.Context) {
 			NetInfo["byteTotalSent"] = totalSent
 			totalRecv = 0
 			totalSent = 0
-			lock.Unlock()
-
 			time.Sleep(time.Second * 2)
+			lock.Unlock()
 		}
 	}
 }
@@ -124,12 +123,12 @@ func PingThread(ctx context.Context, host string, mark string) {
 		case <-ctx.Done():
 			return
 		default:
+			time.Sleep(time.Second * 2)
 			// The packet is sent to the destination address. If the packet fails to be sent, packet loss occurs.
 			if _, err = conn.Write(buffer.Bytes()); err != nil {
 				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
-				time.Sleep(time.Second * 2)
 				continue
 			}
 
@@ -140,19 +139,16 @@ func PingThread(ctx context.Context, host string, mark string) {
 				logger.LogWithFormat("[Ping][%s]: %s", mark, err.Error())
 				lostPacket++
 				enqueue(queue, &lostPacket, 0, mark)
-				time.Sleep(time.Second * 2)
 				continue
 			}
 			timeEnd := time.Now().UnixMilli()
 			timeCost := int(timeEnd - timeStart)
 			enqueue(queue, &lostPacket, timeCost, mark)
-			time.Sleep(time.Second * 2)
 		}
 	}
 }
 
-func enqueue(queue *list.List, lostPacket *int, value int, mark string) {
-	lock.Lock()
+func enqueue(queue *list.List, lostPacket *int, timeCost int, mark string) {
 	if queue.Len() > 100 { // The maximum length of the queue is 100.
 		backElement := queue.Back()
 		if backElement.Value.(int) == 0 { // An empty packet.
@@ -160,19 +156,18 @@ func enqueue(queue *list.List, lostPacket *int, value int, mark string) {
 		}
 		queue.Remove(backElement)
 	}
-	queue.PushFront(value)
+	queue.PushFront(timeCost)
 
 	lostPacketRateStr := fmt.Sprintf("%.f", (float64(*lostPacket)/float64(queue.Len()))*100)
 	lostPacketRate, _ := strconv.Atoi(lostPacketRateStr)
-	PingTime.Store(mark, value)
+	PingTime.Store(mark, timeCost)
 	LostRate.Store(mark, lostPacketRate)
-	lock.Unlock()
 }
 
 func checkSum(data []byte) (rt uint16) {
 	var (
 		sum    uint32
-		length int = len(data)
+		length = len(data)
 		index  int
 	)
 	for length > 1 {

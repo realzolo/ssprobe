@@ -3,18 +3,17 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"ssprobe-client/monitor"
 	"ssprobe-common/model"
 	"time"
 )
 
-var authRes *monitor.AuthResult
-
 func main() {
 	for {
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		// Authenticate the client.
-		authRes = monitor.RequestAuth()
+		authRes := monitor.RequestAuth()
 		if !authRes.Ok {
 			time.Sleep(time.Second * 60)
 			continue
@@ -22,15 +21,15 @@ func main() {
 		// Realtime data.
 		monitor.GetRealtimeData(ctx)
 		// Stay connected and push data.
-		pushDataToServer()
+		pushDataToServer(authRes.Name, authRes.Conn)
 		// End other goroutines.
 		cancelFunc()
 		time.Sleep(time.Second * 60)
 	}
 }
 
-func pushDataToServer() {
-	var maxNumOfTry = 10
+func pushDataToServer(name string, conn *net.Conn) {
+	var maxRetries = 10
 	for {
 		_ip, _ipVersion, _location := monitor.GetIP()
 		_platform, _process, _uptime := monitor.GetHost()
@@ -53,7 +52,7 @@ func pushDataToServer() {
 		_lostRate10086, _ := monitor.LostRate.Load("10086")
 
 		osModel := model.OSModel{
-			Name:           authRes.Name,
+			Name:           name,
 			Host:           _ip,
 			IPVersion:      _ipVersion,
 			State:          true,
@@ -89,11 +88,14 @@ func pushDataToServer() {
 			Process:        _process,
 		}
 		bytes, _ := json.Marshal(osModel)
-		if _, err := (*authRes.Conn).Write(bytes); err != nil {
-			if maxNumOfTry--; maxNumOfTry == 0 {
+
+		// Try up to 10 times more.
+		if _, err := (*conn).Write(bytes); err != nil {
+			if maxRetries--; maxRetries == 0 {
 				return
 			}
 		}
+
 		time.Sleep(time.Second * 2)
 	}
 }

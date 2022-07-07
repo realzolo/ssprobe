@@ -1,10 +1,11 @@
 #!/bin/bash
-function handle_server() {
+function deploy_server() {
   # download ssprobe-server and config.yaml if not exists
-  if [ ! -f ssprobe-server ] or [! -f config.yaml]; then
+  if [ ! -f ssprobe-server ] || [ ! -f config.yaml ]; then
     wget -O ssprobe-server https://download.onezol.com/public/ssprobe/ssprobe-server
     wget -O config.yaml https://download.onezol.com/public/ssprobe/config.yaml
     chmod +x ssprobe-server
+    clear
   fi
 
   # kill ssprobe-server process if exists
@@ -12,10 +13,14 @@ function handle_server() {
 
   # run ssprobe-server
   nohup ./ssprobe-server >ssprobe.log 2>&1 &
-  echo "Started with pid: $!"
+  echo "----------------------------------------------------"
+  echo "ssprobe-server is running, please check ssprobe.log"
+  echo "started with pid: $!"
+  echo "open http://127.0.0.1:10240 in browser"
+  echo "----------------------------------------------------"
 }
 
-function handle_client() {
+function deploy_client() {
   #  download ssprobe-client if not exists
   if [ ! -f ssprobe-client ]; then
     wget -O ssprobe-client https://download.onezol.com/public/ssprobe/ssprobe-client
@@ -48,7 +53,10 @@ function handle_client() {
 
   # run ssprobe-client
   nohup ./ssprobe-client --name="$name" --server="$server" --port="$port" --token="$token" >ssprobe.log 2>&1 &
-  echo "Started with pid: $!"
+  echo "----------------------------------------------------"
+  echo "ssprobe-client is running, please check ssprobe.log"
+  echo "started with pid: $!"
+  echo "----------------------------------------------------"
 }
 
 # kill process if exists
@@ -60,11 +68,11 @@ function kill_if_exist() {
 }
 
 # choose server or client
-read -p "Deploy server[0] or Client[1]? " option
+read -p "Deploy server[0] or client[1]? " option
 if [ "$option" -eq 0 ]; then
-  handle_server
+  deploy_server
 elif [ "$option" -eq 1 ]; then
-  handle_client
+  deploy_client
 else
   echo "Invalid option"
 fi
